@@ -4,26 +4,40 @@ import { MapScreen } from './components/MapScreen';
 import { NavigationScreen } from './components/NavigationScreen';
 import { UserPreferences } from './components/UserPreferences';
 import { AuthScreen } from './components/AuthScreen';
-import { SubscriptionScreen } from './components/SubscriptionScreen';
 import { AdvancedRoutePlanner } from './components/AdvancedRoutePlanner';
 import { Button } from './components/ui/button';
 import { User, BarChart3 } from 'lucide-react';
 import { LanguageProvider } from './contexts/LanguageContext';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
-import { MonetizationProvider } from './contexts/MonetizationContext';
+import { MonetizationProvider, useMonetization } from './contexts/MonetizationContext';
 import { CountryProvider } from './contexts/CountryContext';
 import { AppMetricsDashboard } from './components/AppMetricsDashboard';
 
 type Screen = 'home' | 'map' | 'navigation' | 'preferences' | 'auth' | 'planner' | 'metrics';
 
+// Inject Google AdSense script once
+function useAdSense() {
+  useEffect(() => {
+    if (document.querySelector('script[data-adsense]')) return;
+    const script = document.createElement('script');
+    script.src = 'https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6092089279576992';
+    script.async = true;
+    script.crossOrigin = 'anonymous';
+    script.setAttribute('data-adsense', 'true');
+    document.head.appendChild(script);
+  }, []);
+}
+
 function AppContent() {
-  const { user, isAuthenticated } = useAuth();
+  const { isAuthenticated } = useAuth();
+  const { trackRegistration } = useMonetization();
   const [selectedMode, setSelectedMode] = useState<TransportMode | null>(null);
   const [currentScreen, setCurrentScreen] = useState<Screen>('home');
   const [destination, setDestination] = useState('');
   const [showAuthPrompt, setShowAuthPrompt] = useState(false);
 
-  // Show auth screen on first load if not authenticated
+  useAdSense();
+
   useEffect(() => {
     if (!isAuthenticated && !showAuthPrompt) {
       const hasSeenAuth = localStorage.getItem('anakabo_seen_auth');
@@ -70,6 +84,7 @@ function AppContent() {
         onSuccess={() => {
           setShowAuthPrompt(false);
           localStorage.setItem('anakabo_seen_auth', 'true');
+          trackRegistration();
         }}
         onSkip={() => {
           setShowAuthPrompt(false);
@@ -83,10 +98,8 @@ function AppContent() {
     return (
       <div>
         <div className="p-4 border-b flex items-center justify-between bg-white">
-          <h1 className="text-xl font-bold">Métriques de l'App</h1>
-          <Button variant="ghost" onClick={() => setCurrentScreen('home')}>
-            Fermer
-          </Button>
+          <h1 className="text-xl font-bold">Métriques Anakabo</h1>
+          <Button variant="ghost" onClick={() => setCurrentScreen('home')}>Fermer</Button>
         </div>
         <AppMetricsDashboard />
       </div>
@@ -151,7 +164,6 @@ function AppContent() {
         setCurrentScreen('map');
       }} />
 
-      {/* User Menu */}
       <div className="fixed top-4 left-4 z-50 flex flex-col gap-2">
         <Button
           className="rounded-full w-12 h-12"
@@ -173,7 +185,6 @@ function AppContent() {
         </Button>
       </div>
 
-      {/* Quick actions bar */}
       <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50">
         <Button
           onClick={() => setCurrentScreen('planner')}
@@ -182,7 +193,6 @@ function AppContent() {
           📅 Planifier un trajet
         </Button>
       </div>
-
     </>
   );
 }

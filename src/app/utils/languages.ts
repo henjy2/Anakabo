@@ -53,13 +53,28 @@ export const languages: Language[] = [
 
   // Langues coloniales en Afrique
   { code: 'fr', name: 'French', nativeName: 'Français', region: 'Francophone Africa', flag: '🇫🇷' },
-  { code: 'en', name: 'English', nativeName: 'English', region: 'Anglophone Africa', flag: '🇬🇧' },
+  { code: 'en-gb', name: 'English (British)', nativeName: 'English (British)', region: 'Royaume-Uni', flag: '🇬🇧' },
+  { code: 'en-us', name: 'English (American)', nativeName: 'English (US)', region: 'États-Unis', flag: '🇺🇸' },
+  { code: 'en-au', name: 'English (Australian)', nativeName: 'English (AU)', region: 'Australie', flag: '🇦🇺' },
+  { code: 'en-ca', name: 'English (Canadian)', nativeName: 'English (CA)', region: 'Canada', flag: '🇨🇦' },
+  { code: 'en', name: 'English (Africa)', nativeName: 'English', region: 'Anglophone Africa', flag: '🇬🇧' },
   { code: 'pt', name: 'Portuguese', nativeName: 'Português', region: 'Lusophone Africa', flag: '🇵🇹' },
   { code: 'af', name: 'Afrikaans', nativeName: 'Afrikaans', region: 'South Africa', flag: '🇿🇦' },
 
-  // Haïti et Caraïbes
-  { code: 'ht', name: 'Haitian Creole', nativeName: 'Kreyòl Ayisyen', region: 'Haiti', flag: '🇭🇹' },
-  { code: 'fr-ht', name: 'French (Haiti)', nativeName: 'Fransè (Ayiti)', region: 'Haiti', flag: '🇭🇹' },
+  // HAYTI / AYITI et Caraïbes créolophones
+  { code: 'ht', name: 'Kreyòl Ayisyen (HAYTI)', nativeName: 'Kreyòl Ayisyen', region: 'HAYTI', flag: '🇭🇹' },
+  { code: 'fr-ht', name: 'Fransè (HAYTI)', nativeName: 'Fransè (HAYTI)', region: 'HAYTI', flag: '🇭🇹' },
+  { code: 'gcf', name: 'Kreyòl Gwadloupéyen', nativeName: 'Kreyòl Gwadloupéyen', region: 'Guadeloupe', flag: '🇬🇵' },
+  { code: 'mart', name: 'Kreyòl Matinnikè', nativeName: 'Kreyòl Matinnikè', region: 'Martinique', flag: '🇲🇶' },
+  { code: 'gcr', name: 'Kreyòl Gwiyanè', nativeName: 'Kreyòl Gwiyanè', region: 'Guyane', flag: '🇬🇫' },
+  { code: 'mfe', name: 'Kreol Morisyen', nativeName: 'Kreol Morisyen', region: 'Maurice', flag: '🇲🇺' },
+  { code: 'rcf', name: 'Kréol Rénioné', nativeName: 'Kréol Rénioné', region: 'La Réunion', flag: '🇷🇪' },
+  { code: 'crs', name: 'Kreol Seselwa', nativeName: 'Kreol Seselwa', region: 'Seychelles', flag: '🇸🇨' },
+  { code: 'kea', name: 'Kriolu Kabuverdianu', nativeName: 'Kriolu Kabuverdianu', region: 'Cap-Vert', flag: '🇨🇻' },
+  { code: 'pov', name: 'Kriyol (Guinée-Bissau)', nativeName: 'Kriyol', region: 'Guinée-Bissau', flag: '🇬🇼' },
+  { code: 'tcs', name: 'Torres Strait Creole', nativeName: 'Yumplatok', region: 'Australie', flag: '🇦🇺' },
+  { code: 'jam', name: 'Jamaican Patois', nativeName: 'Patwa', region: 'Jamaïque', flag: '🇯🇲' },
+  { code: 'tto', name: 'Trinidad Creole', nativeName: 'Trinidadian Creole', region: 'Trinidad', flag: '🇹🇹' },
 
   // Autres langues africaines importantes
   { code: 'ts', name: 'Tsonga', nativeName: 'Xitsonga', region: 'South Africa', flag: '🇿🇦' },

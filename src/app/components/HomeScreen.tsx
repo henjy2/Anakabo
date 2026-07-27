@@ -146,7 +146,7 @@ export function HomeScreen({ onSelectMode }: HomeScreenProps) {
             </div>
           </Card>
 
-          <Card className="p-4 bg-gradient-to-r from-gray-900 to-gray-800 text-white">
+          <Card className="p-4 bg-gradient-to-r from-blue-600 via-red-600 to-blue-600 text-white">
             <div className="flex items-center gap-3">
               <img
                 src="https://upload.wikimedia.org/wikipedia/commons/c/c0/Flag_of_the_First_Empire_of_Haiti.svg"

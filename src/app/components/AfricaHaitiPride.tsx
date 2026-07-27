@@ -5,7 +5,7 @@ import { Globe, Heart, Languages as LanguagesIcon } from 'lucide-react';
 function EmpireHaytiFlag({ size = 48 }: { size?: number }) {
   return (
     <img
-      src="https://upload.wikimedia.org/wikipedia/commons/thumb/8/8d/Flag_of_the_First_Empire_of_Haiti.svg/120px-Flag_of_the_First_Empire_of_Haiti.svg.png"
+      src="https://upload.wikimedia.org/wikipedia/commons/c/c0/Flag_of_the_First_Empire_of_Haiti.svg"
       alt="Drapeau de l'Empire d'Hayti"
       width={size * 1.5}
       height={size}

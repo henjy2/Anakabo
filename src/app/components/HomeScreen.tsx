@@ -113,28 +113,6 @@ export function HomeScreen({ onSelectMode }: HomeScreenProps) {
           </div>
         )}
 
-        {/* Region cards — Waze-style clean */}
-        <div className="w-full grid grid-cols-1 gap-3 mb-6">
-          <div className="flex items-center gap-4 bg-white rounded-2xl border border-gray-100 shadow-sm px-5 py-4 hover:shadow-md transition-shadow cursor-default">
-            <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center text-xl">🌍</div>
-            <div>
-              <p className="font-semibold text-gray-900">Afrique — Afrika — Africa</p>
-              <p className="text-sm text-gray-400">52 {t("country")}s · 80+ {t("language")}s</p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-4 bg-white rounded-2xl border border-gray-100 shadow-sm px-5 py-4 hover:shadow-md transition-shadow cursor-default">
-            <img
-              src="https://upload.wikimedia.org/wikipedia/commons/c/c0/Flag_of_the_First_Empire_of_Haiti.svg"
-              alt="HAYTI"
-              className="w-10 h-8 rounded-md object-cover flex-shrink-0"
-            />
-            <div>
-              <p className="font-semibold text-gray-900">HAYTI — AYITI</p>
-              <p className="text-sm text-gray-400">Kreyòl Ayiti ak Fransè</p>
-            </div>
-          </div>
-        </div>
 
         {/* Transport modes */}
         <div className="w-full bg-white rounded-2xl border border-gray-100 shadow-sm p-5">

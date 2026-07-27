@@ -8,36 +8,27 @@ export function AnakaboLogo({ size = 48, className = '' }: AnakaboLogoProps) {
     <svg
       width={size}
       height={size}
-      viewBox="0 0 48 48"
+      viewBox="0 0 56 56"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
       className={className}
     >
-      {/* Outer circle */}
-      <circle cx="24" cy="24" r="23" fill="#1a1a2e" />
-      {/* Navigation arrow pointing up-right */}
+      {/* Pin body */}
       <path
-        d="M14 34L22 14L34 22L22 26L14 34Z"
-        fill="white"
-        fillOpacity="0.15"
+        d="M28 4C19.163 4 12 11.163 12 20C12 30.5 28 52 28 52C28 52 44 30.5 44 20C44 11.163 36.837 4 28 4Z"
+        fill="#2563EB"
       />
+      {/* Pin highlight */}
       <path
-        d="M15 33L23 15L35 23L23 27L15 33Z"
-        stroke="white"
-        strokeWidth="1.5"
-        strokeLinejoin="round"
-        fill="none"
+        d="M28 4C19.163 4 12 11.163 12 20C12 24 13.5 28.5 16 33C18 28 20 22 28 18C36 22 38 28 40 33C42.5 28.5 44 24 44 20C44 11.163 36.837 4 28 4Z"
+        fill="#3B82F6"
       />
-      {/* Inner dot at origin */}
-      <circle cx="23" cy="27" r="2" fill="#60a5fa" />
-      {/* Accent arc */}
+      {/* Inner circle white */}
+      <circle cx="28" cy="20" r="8" fill="white" />
+      {/* Navigation arrow inside */}
       <path
-        d="M10 38 Q24 8 38 38"
-        stroke="#3b82f6"
-        strokeWidth="1.5"
-        strokeLinecap="round"
-        fill="none"
-        opacity="0.4"
+        d="M28 14L32 24L28 22L24 24L28 14Z"
+        fill="#2563EB"
       />
     </svg>
   );
@@ -45,13 +36,13 @@ export function AnakaboLogo({ size = 48, className = '' }: AnakaboLogoProps) {
 
 export function AnakaboLogoFull({ className = '' }: { className?: string }) {
   return (
-    <div className={`flex items-center gap-3 ${className}`}>
-      <AnakaboLogo size={44} />
+    <div className={`flex items-center gap-2.5 ${className}`}>
+      <AnakaboLogo size={38} />
       <div className="flex flex-col leading-none">
-        <span className="text-2xl font-bold tracking-wider text-gray-900" style={{ letterSpacing: '0.12em' }}>
+        <span className="text-xl font-extrabold tracking-widest text-gray-900" style={{ letterSpacing: '0.15em' }}>
           ANAKABO
         </span>
-        <span className="text-xs text-blue-500 font-medium tracking-widest uppercase">Navigation</span>
+        <span className="text-[10px] text-blue-500 font-semibold tracking-widest uppercase">Navigation</span>
       </div>
     </div>
   );

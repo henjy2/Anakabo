@@ -148,10 +148,13 @@ export function HomeScreen({ onSelectMode }: HomeScreenProps) {
 
           <Card className="p-4 text-white overflow-hidden" style={{ background: 'linear-gradient(135deg, #000000 0%, #1a0000 50%, #D21034 100%)' }}>
             <div className="flex items-center gap-3">
-              <svg width="48" height="32" viewBox="0 0 150 100" xmlns="http://www.w3.org/2000/svg" style={{ borderRadius: 3, flexShrink: 0 }}>
-                <rect width="150" height="50" fill="#000000" />
-                <rect y="50" width="150" height="50" fill="#D21034" />
-              </svg>
+              <img
+                src="https://upload.wikimedia.org/wikipedia/commons/thumb/8/8d/Flag_of_the_First_Empire_of_Haiti.svg/120px-Flag_of_the_First_Empire_of_Haiti.svg.png"
+                alt="Drapeau de l'Empire d'Hayti"
+                width="60"
+                height="40"
+                style={{ borderRadius: 3, flexShrink: 0, objectFit: 'cover' }}
+              />
               <div>
                 <h3 className="font-bold text-lg">HAYTI — AYITI 👑</h3>
                 <p className="text-sm opacity-90">

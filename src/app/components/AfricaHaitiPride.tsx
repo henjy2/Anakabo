@@ -2,13 +2,15 @@ import { Card } from './ui/card';
 import { Badge } from './ui/badge';
 import { Globe, Heart, Languages as LanguagesIcon } from 'lucide-react';
 
-// Drapeau de l'Empire d'Hayti — Jean-Jacques Dessalines (noir et rouge, bicolore horizontal)
 function EmpireHaytiFlag({ size = 48 }: { size?: number }) {
   return (
-    <svg width={size} height={size * 0.67} viewBox="0 0 150 100" xmlns="http://www.w3.org/2000/svg" style={{ borderRadius: 3 }}>
-      <rect width="150" height="50" fill="#000000" />
-      <rect y="50" width="150" height="50" fill="#D21034" />
-    </svg>
+    <img
+      src="https://upload.wikimedia.org/wikipedia/commons/thumb/8/8d/Flag_of_the_First_Empire_of_Haiti.svg/120px-Flag_of_the_First_Empire_of_Haiti.svg.png"
+      alt="Drapeau de l'Empire d'Hayti"
+      width={size * 1.5}
+      height={size}
+      style={{ borderRadius: 3, objectFit: 'cover', flexShrink: 0 }}
+    />
   );
 }
 

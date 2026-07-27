@@ -83,7 +83,7 @@ export function HomeScreen({ onSelectMode }: HomeScreenProps) {
 
         <div className="text-center mb-8">
           <h1 className="text-6xl mb-4">🗺️ {t('appName')}</h1>
-          <p className="text-2xl text-gray-700 mb-3">Navigation intelligente pour l'Afrique 🌍 et Haïti 🇭🇹</p>
+          <p className="text-2xl text-gray-700 mb-3">Navigation intelligente pour l'Afrique 🌍 et HAYTI 👑</p>
           <p className="text-sm text-gray-600 mb-4">52 pays africains • Toutes les langues • Assistant vocal</p>
 
           {/* App Metrics */}
@@ -146,13 +146,16 @@ export function HomeScreen({ onSelectMode }: HomeScreenProps) {
             </div>
           </Card>
 
-          <Card className="p-4 bg-gradient-to-r from-blue-600 via-red-600 to-blue-600 text-white">
+          <Card className="p-4 text-white overflow-hidden" style={{ background: 'linear-gradient(135deg, #000000 0%, #1a0000 50%, #D21034 100%)' }}>
             <div className="flex items-center gap-3">
-              <span className="text-4xl">🇭🇹</span>
+              <svg width="48" height="32" viewBox="0 0 150 100" xmlns="http://www.w3.org/2000/svg" style={{ borderRadius: 3, flexShrink: 0 }}>
+                <rect width="150" height="50" fill="#000000" />
+                <rect y="50" width="150" height="50" fill="#D21034" />
+              </svg>
               <div>
-                <h3 className="font-bold text-lg">Ayiti - Haïti - Haiti</h3>
+                <h3 className="font-bold text-lg">HAYTI — AYITI 👑</h3>
                 <p className="text-sm opacity-90">
-                  Kreyòl Ayisyen ak Fransè • Navigation pou tout Ayisyen
+                  Empire d'Hayti • Dessalines 1804 • Kreyòl Ayisyen ak Fransè
                 </p>
               </div>
             </div>

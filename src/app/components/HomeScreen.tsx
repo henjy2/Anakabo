@@ -146,20 +146,18 @@ export function HomeScreen({ onSelectMode }: HomeScreenProps) {
             </div>
           </Card>
 
-          <Card className="p-4 text-white overflow-hidden" style={{ background: 'linear-gradient(135deg, #000000 0%, #1a0000 50%, #D21034 100%)' }}>
+          <Card className="p-4 bg-gradient-to-r from-gray-800 to-gray-900 text-white">
             <div className="flex items-center gap-3">
               <img
                 src="https://upload.wikimedia.org/wikipedia/commons/thumb/8/8d/Flag_of_the_First_Empire_of_Haiti.svg/120px-Flag_of_the_First_Empire_of_Haiti.svg.png"
-                alt="Drapeau de l'Empire d'Hayti"
+                alt="HAYTI"
                 width="60"
                 height="40"
                 style={{ borderRadius: 3, flexShrink: 0, objectFit: 'cover' }}
               />
               <div>
-                <h3 className="font-bold text-lg">HAYTI — AYITI 👑</h3>
-                <p className="text-sm opacity-90">
-                  Empire d'Hayti • Dessalines 1804 • Kreyòl Ayisyen ak Fransè
-                </p>
+                <h3 className="font-bold text-lg">HAYTI — AYITI</h3>
+                <p className="text-sm opacity-90">Kreyòl Ayiti ak Fransè • Navigation pou tout Ayiti</p>
               </div>
             </div>
           </Card>

@@ -1,43 +1,43 @@
-import { Car, PersonStanding, Bus, Bike, Users, Package, BadgeInfo, Baby } from 'lucide-react';
-import { Button } from './ui/button';
-import { Card } from './ui/card';
-import { Badge } from './ui/badge';
-import { useLanguage } from '../contexts/LanguageContext';
-import { useCountry } from '../contexts/CountryContext';
-import { LanguageSelector } from './LanguageSelector';
-import { CountrySelector } from './CountrySelector';
-import { VoiceCommandButton } from './VoiceCommandButton';
-import { AdBanner } from './AdBanner';
+import { Car, PersonStanding, Bus, Bike, Users, Package, BadgeInfo, Baby, Search } from "lucide-react";
+import { Button } from "./ui/button";
+import { Badge } from "./ui/badge";
+import { useLanguage } from "../contexts/LanguageContext";
+import { useCountry } from "../contexts/CountryContext";
+import { LanguageSelector } from "./LanguageSelector";
+import { CountrySelector } from "./CountrySelector";
+import { VoiceCommandButton } from "./VoiceCommandButton";
+import { AdBanner } from "./AdBanner";
+import { AnakaboLogoFull } from "./AnakaboLogo";
 
 export type TransportMode =
-  | 'car'
-  | 'pedestrian'
-  | 'transit'
-  | 'scooter'
-  | 'carpool'
-  | 'motorcycle'
-  | 'taxi'
-  | 'delivery'
-  | 'bike'
-  | 'tourist'
-  | 'parent';
+  | "car"
+  | "pedestrian"
+  | "transit"
+  | "scooter"
+  | "carpool"
+  | "motorcycle"
+  | "taxi"
+  | "delivery"
+  | "bike"
+  | "tourist"
+  | "parent";
 
 interface HomeScreenProps {
   onSelectMode: (mode: TransportMode) => void;
 }
 
-const transportModeList: { id: TransportMode; icon: any }[] = [
-  { id: 'car', icon: Car },
-  { id: 'pedestrian', icon: PersonStanding },
-  { id: 'transit', icon: Bus },
-  { id: 'bike', icon: Bike },
-  { id: 'scooter', icon: Bike },
-  { id: 'carpool', icon: Users },
-  { id: 'motorcycle', icon: Car },
-  { id: 'taxi', icon: Car },
-  { id: 'delivery', icon: Package },
-  { id: 'tourist', icon: BadgeInfo },
-  { id: 'parent', icon: Baby },
+const transportModeList: { id: TransportMode; icon: any; emoji: string }[] = [
+  { id: "car", icon: Car, emoji: "🚗" },
+  { id: "pedestrian", icon: PersonStanding, emoji: "🚶" },
+  { id: "transit", icon: Bus, emoji: "🚌" },
+  { id: "bike", icon: Bike, emoji: "🚲" },
+  { id: "scooter", icon: Bike, emoji: "🛴" },
+  { id: "carpool", icon: Users, emoji: "🚘" },
+  { id: "motorcycle", icon: Car, emoji: "🏍️" },
+  { id: "taxi", icon: Car, emoji: "🚕" },
+  { id: "delivery", icon: Package, emoji: "📦" },
+  { id: "tourist", icon: BadgeInfo, emoji: "🗺️" },
+  { id: "parent", icon: Baby, emoji: "👶" },
 ];
 
 export function HomeScreen({ onSelectMode }: HomeScreenProps) {
@@ -51,115 +51,117 @@ export function HomeScreen({ onSelectMode }: HomeScreenProps) {
 
   const handleVoiceCommand = (command: string) => {
     const lowerCommand = command.toLowerCase();
-    if (lowerCommand.includes('voiture') || lowerCommand.includes('car') || lowerCommand.includes('machin')) {
-      handleModeSelect('car');
-    } else if (lowerCommand.includes('vélo') || lowerCommand.includes('bike') || lowerCommand.includes('bisiklèt')) {
-      handleModeSelect('bike');
-    } else if (lowerCommand.includes('bus') || lowerCommand.includes('métro') || lowerCommand.includes('transport')) {
-      handleModeSelect('transit');
-    } else if (lowerCommand.includes('marche') || lowerCommand.includes('pied') || lowerCommand.includes('walk') || lowerCommand.includes('mache')) {
-      handleModeSelect('pedestrian');
-    } else if (lowerCommand.includes('scooter') || lowerCommand.includes('trotinette') || lowerCommand.includes('skoutè')) {
-      handleModeSelect('scooter');
-    } else if (lowerCommand.includes('taxi') || lowerCommand.includes('taksi')) {
-      handleModeSelect('taxi');
-    } else if (lowerCommand.includes('moto')) {
-      handleModeSelect('motorcycle');
+    if (lowerCommand.includes("voiture") || lowerCommand.includes("car") || lowerCommand.includes("machin")) {
+      handleModeSelect("car");
+    } else if (lowerCommand.includes("vélo") || lowerCommand.includes("bike") || lowerCommand.includes("bisiklèt")) {
+      handleModeSelect("bike");
+    } else if (lowerCommand.includes("bus") || lowerCommand.includes("métro") || lowerCommand.includes("transport")) {
+      handleModeSelect("transit");
+    } else if (lowerCommand.includes("marche") || lowerCommand.includes("pied") || lowerCommand.includes("walk") || lowerCommand.includes("mache")) {
+      handleModeSelect("pedestrian");
+    } else if (lowerCommand.includes("scooter") || lowerCommand.includes("trotinette") || lowerCommand.includes("skoutè")) {
+      handleModeSelect("scooter");
+    } else if (lowerCommand.includes("taxi") || lowerCommand.includes("taksi")) {
+      handleModeSelect("taxi");
+    } else if (lowerCommand.includes("moto")) {
+      handleModeSelect("motorcycle");
     }
   };
 
   return (
-    <div className="h-screen w-full bg-white flex flex-col items-center justify-center p-6 overflow-auto">
-      <div className="max-w-4xl w-full">
+    <div className="h-screen w-full bg-[#f7f8fa] flex flex-col overflow-auto">
 
-        {/* Top controls */}
-        <div className="absolute top-6 right-6 flex gap-2 flex-wrap justify-end z-10">
+      {/* Top bar */}
+      <div className="bg-white border-b border-gray-100 px-5 py-3 flex items-center justify-between sticky top-0 z-20 shadow-sm">
+        <AnakaboLogoFull />
+        <div className="flex items-center gap-2">
           <VoiceCommandButton onCommand={handleVoiceCommand} />
           <CountrySelector />
           <LanguageSelector />
         </div>
+      </div>
 
-        {/* Header */}
-        <div className="text-center mb-8">
-          <h1 className="text-5xl font-light tracking-tight text-gray-900 mb-2">🗺️ {t('appName')}</h1>
-          <p className="text-base text-gray-500 mb-3">{t('subtitle')}</p>
-          <Badge variant="outline" className="text-gray-600 border-gray-300 px-4 py-1 font-normal">
-            ✅ {t('free')}
-          </Badge>
-        </div>
+      <div className="flex-1 flex flex-col items-center px-5 py-6 max-w-2xl mx-auto w-full">
 
-        {/* Selected Country */}
+        {/* Free badge */}
+        <Badge className="mb-6 bg-green-50 text-green-700 border border-green-200 px-4 py-1.5 font-normal text-sm">
+          ✅ {t("free")}
+        </Badge>
+
+        {/* Search prompt — Waze style */}
+        <button
+          onClick={() => handleModeSelect("car")}
+          className="w-full flex items-center gap-3 bg-white rounded-2xl shadow-md px-5 py-4 mb-6 border border-gray-100 hover:shadow-lg transition-shadow text-left group"
+        >
+          <div className="bg-blue-600 rounded-xl p-2.5 group-hover:bg-blue-700 transition-colors">
+            <Search className="w-5 h-5 text-white" />
+          </div>
+          <div>
+            <p className="text-base font-semibold text-gray-900">{t("destination")}</p>
+            <p className="text-sm text-gray-400">{t("subtitle")}</p>
+          </div>
+        </button>
+
+        {/* Country banner */}
         {selectedCountry && (
-          <Card className="mb-4 p-4 bg-gray-50 border border-gray-200 shadow-none">
-            <div className="flex items-center gap-3">
-              <span className="text-3xl">{selectedCountry.flag}</span>
-              <div>
-                <h3 className="font-medium text-gray-900">{selectedCountry.name}</h3>
-                <p className="text-sm text-gray-500">{selectedCountry.nativeName}</p>
-              </div>
+          <div className="w-full flex items-center gap-3 bg-white rounded-2xl border border-gray-100 shadow-sm px-5 py-4 mb-4">
+            <span className="text-3xl">{selectedCountry.flag}</span>
+            <div>
+              <p className="font-semibold text-gray-900">{selectedCountry.name}</p>
+              <p className="text-sm text-gray-400">{selectedCountry.nativeName}</p>
             </div>
-          </Card>
+          </div>
         )}
 
-        {/* Cultural banners */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-6">
-          <Card className="p-4 bg-gray-50 border border-gray-200 shadow-none hover:bg-gray-100 transition-colors">
-            <div className="flex items-center gap-3">
-              <span className="text-2xl">🌍</span>
-              <div>
-                <h3 className="font-medium text-gray-900">Afrique — Afrika — Africa</h3>
-                <p className="text-sm text-gray-500">52 {t('country')}s • 80+ {t('language')}s</p>
-              </div>
+        {/* Region cards — Waze-style clean */}
+        <div className="w-full grid grid-cols-1 gap-3 mb-6">
+          <div className="flex items-center gap-4 bg-white rounded-2xl border border-gray-100 shadow-sm px-5 py-4 hover:shadow-md transition-shadow cursor-default">
+            <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center text-xl">🌍</div>
+            <div>
+              <p className="font-semibold text-gray-900">Afrique — Afrika — Africa</p>
+              <p className="text-sm text-gray-400">52 {t("country")}s · 80+ {t("language")}s</p>
             </div>
-          </Card>
+          </div>
 
-          <Card className="p-4 bg-gray-50 border border-gray-200 shadow-none hover:bg-gray-100 transition-colors">
-            <div className="flex items-center gap-3">
-              <img
-                src="https://upload.wikimedia.org/wikipedia/commons/c/c0/Flag_of_the_First_Empire_of_Haiti.svg"
-                alt="HAYTI"
-                width="56"
-                height="38"
-                style={{ borderRadius: 3, flexShrink: 0, objectFit: 'cover' }}
-              />
-              <div>
-                <h3 className="font-medium text-gray-900">HAYTI — AYITI</h3>
-                <p className="text-sm text-gray-500">Kreyòl Ayiti ak Fransè</p>
-              </div>
+          <div className="flex items-center gap-4 bg-white rounded-2xl border border-gray-100 shadow-sm px-5 py-4 hover:shadow-md transition-shadow cursor-default">
+            <img
+              src="https://upload.wikimedia.org/wikipedia/commons/c/c0/Flag_of_the_First_Empire_of_Haiti.svg"
+              alt="HAYTI"
+              className="w-10 h-8 rounded-md object-cover flex-shrink-0"
+            />
+            <div>
+              <p className="font-semibold text-gray-900">HAYTI — AYITI</p>
+              <p className="text-sm text-gray-400">Kreyòl Ayiti ak Fransè</p>
             </div>
-          </Card>
+          </div>
         </div>
 
         {/* Transport modes */}
-        <Card className="p-6 border border-gray-200 shadow-none">
-          <h2 className="text-base font-medium text-gray-700 text-center mb-4">{t('chooseMode')}</h2>
-          <div className="grid grid-cols-3 md:grid-cols-6 gap-2">
-            {transportModeList.map((mode) => {
-              const Icon = mode.icon;
-              return (
-                <Button
-                  key={mode.id}
-                  onClick={() => handleModeSelect(mode.id)}
-                  variant="ghost"
-                  className="h-20 flex flex-col items-center justify-center gap-2 hover:bg-gray-100 transition-colors rounded-xl border border-transparent hover:border-gray-200"
-                >
-                  <Icon className="w-5 h-5 text-gray-600" />
-                  <span className="text-xs text-center leading-tight text-gray-600">{t(mode.id)}</span>
-                </Button>
-              );
-            })}
+        <div className="w-full bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+          <p className="text-sm font-semibold text-gray-500 uppercase tracking-widest mb-4">{t("chooseMode")}</p>
+          <div className="grid grid-cols-4 gap-2">
+            {transportModeList.map((mode) => (
+              <button
+                key={mode.id}
+                onClick={() => handleModeSelect(mode.id)}
+                className="flex flex-col items-center gap-1.5 py-3 px-2 rounded-xl hover:bg-blue-50 active:bg-blue-100 transition-colors group"
+              >
+                <span className="text-2xl group-hover:scale-110 transition-transform">{mode.emoji}</span>
+                <span className="text-xs text-gray-600 text-center leading-tight font-medium">{t(mode.id)}</span>
+              </button>
+            ))}
           </div>
 
           <div className="mt-4 pt-4 border-t border-gray-100">
-            <Button
-              variant="default"
-              className="w-full bg-gray-900 hover:bg-gray-800 text-white font-normal"
-              onClick={() => handleModeSelect('car')}
+            <button
+              onClick={() => handleModeSelect("car")}
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3.5 rounded-xl transition-colors flex items-center justify-center gap-2 text-sm"
             >
-              {t('multimodal')} →
-            </Button>
+              <span>{t("multimodal")}</span>
+              <span>→</span>
+            </button>
           </div>
-        </Card>
+        </div>
       </div>
 
       <AdBanner position="bottom" />

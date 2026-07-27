@@ -300,7 +300,7 @@ export function MapScreen({ mode, onBack }: MapScreenProps) {
   return (
     <div className="h-screen w-full flex flex-col bg-gray-50">
       {/* Header */}
-      <div className={`${config.color} text-white p-4 shadow-lg`}>
+      <div className={`${config.color} text-white p-4 shadow-lg relative z-10`}>
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-3">
             <Button variant="ghost" size="icon" onClick={onBack} className="text-white hover:bg-white/20">

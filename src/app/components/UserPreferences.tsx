@@ -27,7 +27,6 @@ import { TransportMode } from './HomeScreen';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useAuth } from '../contexts/AuthContext';
 import { LanguageSelector } from './LanguageSelector';
-import { AfricaHaitiPride } from './AfricaHaitiPride';
 import { AlertsTab } from './AlertsTab';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 
@@ -464,8 +463,6 @@ export function UserPreferences({ onClose, onSelectRoute }: UserPreferencesProps
                 </Badge>
               </div>
             </Card>
-
-            <AfricaHaitiPride />
 
             <Card className="p-6 bg-amber-50 border-amber-200">
               <h3 className="text-lg font-semibold mb-2">💡 Suggestion intelligente</h3>

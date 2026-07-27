@@ -5,7 +5,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Input } from './ui/input';
 import { Badge } from './ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
-import { countries, getAfricanCountries, getCaribbeanCountries, type Country } from '../utils/countries';
+import { getAfricanCountries, getCaribbeanCountries, getEuropeanCountries, getAmericasCountries, getAsianCountries, type Country } from '../utils/countries';
 import { languages } from '../utils/languages';
 import { useCountry } from '../contexts/CountryContext';
 import { useLanguage } from '../contexts/LanguageContext';
@@ -20,6 +20,9 @@ export function CountrySelector() {
 
   const africanCountries = getAfricanCountries();
   const caribbeanCountries = getCaribbeanCountries();
+  const europeanCountries = getEuropeanCountries();
+  const americasCountries = getAmericasCountries();
+  const asianCountries = getAsianCountries();
 
   const filterCountries = (list: Country[]) => {
     if (!search) return list;
@@ -141,13 +144,12 @@ export function CountrySelector() {
             </div>
 
             <Tabs defaultValue="africa" className="flex-1 overflow-hidden flex flex-col">
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="africa">
-                  🌍 Afrique ({africanCountries.length})
-                </TabsTrigger>
-                <TabsTrigger value="caribbean">
-                  HAYTI & Caraïbes ({caribbeanCountries.length})
-                </TabsTrigger>
+              <TabsList className="grid w-full grid-cols-5 text-xs">
+                <TabsTrigger value="africa">🌍 Afrique</TabsTrigger>
+                <TabsTrigger value="caribbean">HAYTI</TabsTrigger>
+                <TabsTrigger value="europe">🇪🇺 Europe</TabsTrigger>
+                <TabsTrigger value="americas">🌎 Amériques</TabsTrigger>
+                <TabsTrigger value="asia">🌏 Asie</TabsTrigger>
               </TabsList>
 
               <div className="overflow-y-auto flex-1 mt-4">
@@ -161,6 +163,27 @@ export function CountrySelector() {
                 <TabsContent value="caribbean" className="mt-0">
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                     {filterCountries(caribbeanCountries).map((country) => (
+                      <CountryCard key={country.code} country={country} />
+                    ))}
+                  </div>
+                </TabsContent>
+                <TabsContent value="europe" className="mt-0">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                    {filterCountries(europeanCountries).map((country) => (
+                      <CountryCard key={country.code} country={country} />
+                    ))}
+                  </div>
+                </TabsContent>
+                <TabsContent value="americas" className="mt-0">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                    {filterCountries(americasCountries).map((country) => (
+                      <CountryCard key={country.code} country={country} />
+                    ))}
+                  </div>
+                </TabsContent>
+                <TabsContent value="asia" className="mt-0">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                    {filterCountries(asianCountries).map((country) => (
                       <CountryCard key={country.code} country={country} />
                     ))}
                   </div>

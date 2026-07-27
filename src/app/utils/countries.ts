@@ -3,10 +3,10 @@ export interface Country {
   name: string;
   nativeName: string;
   flag: string;
-  region: 'africa' | 'caribbean' | 'world';
-  coordinates: [number, number]; // [lng, lat]
+  region: 'africa' | 'caribbean' | 'europe' | 'americas' | 'asia' | 'oceania';
+  coordinates: [number, number];
   zoom: number;
-  languages: string[]; // language codes
+  languages: string[];
   currency?: string;
   capital?: string;
 }
@@ -84,6 +84,53 @@ export const countries: Country[] = [
   { code: 'BB', name: 'Barbados', nativeName: 'Barbados', flag: '🇧🇧', region: 'caribbean', coordinates: [-59.5432, 13.1939], zoom: 11, languages: ['en'], currency: 'BBD', capital: 'Bridgetown' },
   { code: 'GP', name: 'Guadeloupe', nativeName: 'Guadeloupe', flag: '🇬🇵', region: 'caribbean', coordinates: [-61.5510, 16.2650], zoom: 9, languages: ['fr'], currency: 'EUR', capital: 'Basse-Terre' },
   { code: 'MQ', name: 'Martinique', nativeName: 'Martinique', flag: '🇲🇶', region: 'caribbean', coordinates: [-61.0242, 14.6415], zoom: 9, languages: ['fr'], currency: 'EUR', capital: 'Fort-de-France' },
+
+  // Europe
+  { code: 'FR', name: 'France', nativeName: 'France', flag: '🇫🇷', region: 'europe', coordinates: [2.3522, 48.8566], zoom: 5, languages: ['fr'], currency: 'EUR', capital: 'Paris' },
+  { code: 'GB', name: 'United Kingdom', nativeName: 'United Kingdom', flag: '🇬🇧', region: 'europe', coordinates: [-0.1276, 51.5074], zoom: 5, languages: ['en-gb'], currency: 'GBP', capital: 'Londres' },
+  { code: 'DE', name: 'Germany', nativeName: 'Deutschland', flag: '🇩🇪', region: 'europe', coordinates: [13.4050, 52.5200], zoom: 5, languages: ['de'], currency: 'EUR', capital: 'Berlin' },
+  { code: 'ES', name: 'Spain', nativeName: 'España', flag: '🇪🇸', region: 'europe', coordinates: [-3.7038, 40.4168], zoom: 5, languages: ['es'], currency: 'EUR', capital: 'Madrid' },
+  { code: 'IT', name: 'Italy', nativeName: 'Italia', flag: '🇮🇹', region: 'europe', coordinates: [12.4964, 41.9028], zoom: 5, languages: ['it'], currency: 'EUR', capital: 'Rome' },
+  { code: 'PT', name: 'Portugal', nativeName: 'Portugal', flag: '🇵🇹', region: 'europe', coordinates: [-9.1393, 38.7223], zoom: 6, languages: ['pt'], currency: 'EUR', capital: 'Lisbonne' },
+  { code: 'BE', name: 'Belgium', nativeName: 'Belgique', flag: '🇧🇪', region: 'europe', coordinates: [4.3517, 50.8503], zoom: 7, languages: ['fr', 'nl', 'de'], currency: 'EUR', capital: 'Bruxelles' },
+  { code: 'CH', name: 'Switzerland', nativeName: 'Schweiz', flag: '🇨🇭', region: 'europe', coordinates: [7.4474, 46.9481], zoom: 7, languages: ['fr', 'de', 'it'], currency: 'CHF', capital: 'Berne' },
+  { code: 'NL', name: 'Netherlands', nativeName: 'Nederland', flag: '🇳🇱', region: 'europe', coordinates: [4.9041, 52.3676], zoom: 7, languages: ['nl'], currency: 'EUR', capital: 'Amsterdam' },
+  { code: 'PL', name: 'Poland', nativeName: 'Polska', flag: '🇵🇱', region: 'europe', coordinates: [21.0122, 52.2297], zoom: 6, languages: ['pl'], currency: 'PLN', capital: 'Varsovie' },
+  { code: 'RU', name: 'Russia', nativeName: 'Россия', flag: '🇷🇺', region: 'europe', coordinates: [37.6173, 55.7558], zoom: 3, languages: ['ru'], currency: 'RUB', capital: 'Moscou' },
+  { code: 'UA', name: 'Ukraine', nativeName: 'Україна', flag: '🇺🇦', region: 'europe', coordinates: [30.5234, 50.4501], zoom: 5, languages: ['uk'], currency: 'UAH', capital: 'Kiev' },
+  { code: 'GR', name: 'Greece', nativeName: 'Ελλάδα', flag: '🇬🇷', region: 'europe', coordinates: [23.7275, 37.9838], zoom: 6, languages: ['el'], currency: 'EUR', capital: 'Athènes' },
+  { code: 'RE', name: 'La Réunion', nativeName: 'La Réunion', flag: '🇷🇪', region: 'europe', coordinates: [55.4513, -21.1151], zoom: 9, languages: ['fr'], currency: 'EUR', capital: 'Saint-Denis' },
+  { code: 'GF', name: 'Guyane française', nativeName: 'Guyane', flag: '🇬🇫', region: 'americas', coordinates: [-53.1258, 3.9339], zoom: 6, languages: ['fr'], currency: 'EUR', capital: 'Cayenne' },
+
+  // Amériques
+  { code: 'US', name: 'United States', nativeName: 'United States', flag: '🇺🇸', region: 'americas', coordinates: [-95.7129, 37.0902], zoom: 4, languages: ['en-us'], currency: 'USD', capital: 'Washington' },
+  { code: 'CA', name: 'Canada', nativeName: 'Canada', flag: '🇨🇦', region: 'americas', coordinates: [-106.3468, 56.1304], zoom: 3, languages: ['en-ca', 'fr'], currency: 'CAD', capital: 'Ottawa' },
+  { code: 'BR', name: 'Brazil', nativeName: 'Brasil', flag: '🇧🇷', region: 'americas', coordinates: [-51.9253, -14.2350], zoom: 4, languages: ['pt'], currency: 'BRL', capital: 'Brasília' },
+  { code: 'MX', name: 'Mexico', nativeName: 'México', flag: '🇲🇽', region: 'americas', coordinates: [-102.5528, 23.6345], zoom: 4, languages: ['es'], currency: 'MXN', capital: 'Mexico' },
+  { code: 'AR', name: 'Argentina', nativeName: 'Argentina', flag: '🇦🇷', region: 'americas', coordinates: [-63.6167, -38.4161], zoom: 4, languages: ['es'], currency: 'ARS', capital: 'Buenos Aires' },
+  { code: 'CO', name: 'Colombia', nativeName: 'Colombia', flag: '🇨🇴', region: 'americas', coordinates: [-74.2973, 4.5709], zoom: 5, languages: ['es'], currency: 'COP', capital: 'Bogotá' },
+  { code: 'CL', name: 'Chile', nativeName: 'Chile', flag: '🇨🇱', region: 'americas', coordinates: [-71.5430, -35.6751], zoom: 4, languages: ['es'], currency: 'CLP', capital: 'Santiago' },
+  { code: 'PE', name: 'Peru', nativeName: 'Perú', flag: '🇵🇪', region: 'americas', coordinates: [-75.0152, -9.1900], zoom: 5, languages: ['es'], currency: 'PEN', capital: 'Lima' },
+  { code: 'VE', name: 'Venezuela', nativeName: 'Venezuela', flag: '🇻🇪', region: 'americas', coordinates: [-66.5897, 6.4238], zoom: 5, languages: ['es'], currency: 'VES', capital: 'Caracas' },
+
+  // Asie
+  { code: 'CN', name: 'China', nativeName: '中国', flag: '🇨🇳', region: 'asia', coordinates: [104.1954, 35.8617], zoom: 3, languages: ['zh'], currency: 'CNY', capital: 'Pékin' },
+  { code: 'JP', name: 'Japan', nativeName: '日本', flag: '🇯🇵', region: 'asia', coordinates: [138.2529, 36.2048], zoom: 5, languages: ['ja'], currency: 'JPY', capital: 'Tokyo' },
+  { code: 'IN', name: 'India', nativeName: 'भारत', flag: '🇮🇳', region: 'asia', coordinates: [78.9629, 20.5937], zoom: 4, languages: ['hi', 'en'], currency: 'INR', capital: 'New Delhi' },
+  { code: 'KR', name: 'South Korea', nativeName: '한국', flag: '🇰🇷', region: 'asia', coordinates: [127.7669, 35.9078], zoom: 6, languages: ['ko'], currency: 'KRW', capital: 'Séoul' },
+  { code: 'SA', name: 'Saudi Arabia', nativeName: 'المملكة العربية السعودية', flag: '🇸🇦', region: 'asia', coordinates: [45.0792, 23.8859], zoom: 5, languages: ['ar'], currency: 'SAR', capital: 'Riyad' },
+  { code: 'TR', name: 'Turkey', nativeName: 'Türkiye', flag: '🇹🇷', region: 'asia', coordinates: [35.2433, 38.9637], zoom: 5, languages: ['tr'], currency: 'TRY', capital: 'Ankara' },
+  { code: 'ID', name: 'Indonesia', nativeName: 'Indonesia', flag: '🇮🇩', region: 'asia', coordinates: [113.9213, -0.7893], zoom: 4, languages: ['id'], currency: 'IDR', capital: 'Jakarta' },
+  { code: 'PK', name: 'Pakistan', nativeName: 'پاکستان', flag: '🇵🇰', region: 'asia', coordinates: [69.3451, 30.3753], zoom: 5, languages: ['ur', 'en'], currency: 'PKR', capital: 'Islamabad' },
+  { code: 'BD', name: 'Bangladesh', nativeName: 'বাংলাদেশ', flag: '🇧🇩', region: 'asia', coordinates: [90.3563, 23.6850], zoom: 6, languages: ['bn'], currency: 'BDT', capital: 'Dhaka' },
+  { code: 'TH', name: 'Thailand', nativeName: 'ประเทศไทย', flag: '🇹🇭', region: 'asia', coordinates: [100.9925, 15.8700], zoom: 5, languages: ['th'], currency: 'THB', capital: 'Bangkok' },
+  { code: 'VN', name: 'Vietnam', nativeName: 'Việt Nam', flag: '🇻🇳', region: 'asia', coordinates: [108.2772, 14.0583], zoom: 5, languages: ['vi'], currency: 'VND', capital: 'Hanoï' },
+  { code: 'PH', name: 'Philippines', nativeName: 'Pilipinas', flag: '🇵🇭', region: 'asia', coordinates: [121.7740, 12.8797], zoom: 5, languages: ['tl', 'en'], currency: 'PHP', capital: 'Manille' },
+  { code: 'MY', name: 'Malaysia', nativeName: 'Malaysia', flag: '🇲🇾', region: 'asia', coordinates: [109.6976, 4.2105], zoom: 5, languages: ['ms', 'en'], currency: 'MYR', capital: 'Kuala Lumpur' },
+
+  // Océanie
+  { code: 'AU', name: 'Australia', nativeName: 'Australia', flag: '🇦🇺', region: 'oceania', coordinates: [133.7751, -25.2744], zoom: 3, languages: ['en-au'], currency: 'AUD', capital: 'Canberra' },
+  { code: 'NZ', name: 'New Zealand', nativeName: 'New Zealand', flag: '🇳🇿', region: 'oceania', coordinates: [174.8860, -40.9006], zoom: 5, languages: ['en'], currency: 'NZD', capital: 'Wellington' },
 ];
 
 export const getCountriesByRegion = (region: Country['region']) =>
@@ -91,6 +138,10 @@ export const getCountriesByRegion = (region: Country['region']) =>
 
 export const getAfricanCountries = () => getCountriesByRegion('africa');
 export const getCaribbeanCountries = () => getCountriesByRegion('caribbean');
+export const getEuropeanCountries = () => getCountriesByRegion('europe');
+export const getAmericasCountries = () => getCountriesByRegion('americas');
+export const getAsianCountries = () => getCountriesByRegion('asia');
+export const getWorldCountries = () => countries.filter(c => !['africa'].includes(c.region));
 
 export const getLanguagesForCountry = (countryCode: string) => {
   const country = countries.find(c => c.code === countryCode);

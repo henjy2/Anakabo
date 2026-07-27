@@ -1,14 +1,12 @@
-import { Car, PersonStanding, Bus, Bike, Users, Bike as Scooter, Package, BadgeInfo, Baby, Download, Eye } from 'lucide-react';
+import { Car, PersonStanding, Bus, Bike, Users, Package, BadgeInfo, Baby } from 'lucide-react';
 import { Button } from './ui/button';
 import { Card } from './ui/card';
 import { Badge } from './ui/badge';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useCountry } from '../contexts/CountryContext';
-import { useMonetization } from '../contexts/MonetizationContext';
 import { LanguageSelector } from './LanguageSelector';
 import { CountrySelector } from './CountrySelector';
 import { VoiceCommandButton } from './VoiceCommandButton';
-import { LikeButton } from './LikeButton';
 import { AdBanner } from './AdBanner';
 
 export type TransportMode =
@@ -28,120 +26,89 @@ interface HomeScreenProps {
   onSelectMode: (mode: TransportMode) => void;
 }
 
-const transportModes = [
-  { id: 'car' as TransportMode, label: 'Voiture', icon: Car, color: 'bg-blue-500' },
-  { id: 'pedestrian' as TransportMode, label: 'Piétons', icon: PersonStanding, color: 'bg-green-500' },
-  { id: 'transit' as TransportMode, label: 'Transports', icon: Bus, color: 'bg-purple-500' },
-  { id: 'bike' as TransportMode, label: 'Vélo', icon: Bike, color: 'bg-orange-500' },
-  { id: 'scooter' as TransportMode, label: 'Trottinette', icon: Scooter, color: 'bg-pink-500' },
-  { id: 'carpool' as TransportMode, label: 'Covoiturage', icon: Users, color: 'bg-indigo-500' },
-  { id: 'motorcycle' as TransportMode, label: 'Moto', icon: Car, color: 'bg-red-500' },
-  { id: 'taxi' as TransportMode, label: 'Taxi', icon: Car, color: 'bg-amber-500' },
-  { id: 'delivery' as TransportMode, label: 'Livreur', icon: Package, color: 'bg-yellow-500' },
-  { id: 'tourist' as TransportMode, label: 'Touriste', icon: BadgeInfo, color: 'bg-teal-500' },
-  { id: 'parent' as TransportMode, label: 'Parent', icon: Baby, color: 'bg-rose-500' },
+const transportModeList: { id: TransportMode; icon: any; color: string }[] = [
+  { id: 'car', icon: Car, color: 'bg-blue-500' },
+  { id: 'pedestrian', icon: PersonStanding, color: 'bg-green-500' },
+  { id: 'transit', icon: Bus, color: 'bg-purple-500' },
+  { id: 'bike', icon: Bike, color: 'bg-orange-500' },
+  { id: 'scooter', icon: Bike, color: 'bg-pink-500' },
+  { id: 'carpool', icon: Users, color: 'bg-indigo-500' },
+  { id: 'motorcycle', icon: Car, color: 'bg-red-500' },
+  { id: 'taxi', icon: Car, color: 'bg-amber-500' },
+  { id: 'delivery', icon: Package, color: 'bg-yellow-500' },
+  { id: 'tourist', icon: BadgeInfo, color: 'bg-teal-500' },
+  { id: 'parent', icon: Baby, color: 'bg-rose-500' },
 ];
 
 export function HomeScreen({ onSelectMode }: HomeScreenProps) {
   const { t, speak } = useLanguage();
-  const { metrics } = useMonetization();
   const { selectedCountry } = useCountry();
 
   const handleModeSelect = (mode: TransportMode) => {
-    speak(t('chooseMode'));
+    speak(t(mode));
     onSelectMode(mode);
   };
 
   const handleVoiceCommand = (command: string) => {
     const lowerCommand = command.toLowerCase();
-
-    // Simple voice command processing
-    if (lowerCommand.includes('voiture') || lowerCommand.includes('car')) {
+    if (lowerCommand.includes('voiture') || lowerCommand.includes('car') || lowerCommand.includes('machin')) {
       handleModeSelect('car');
-    } else if (lowerCommand.includes('vélo') || lowerCommand.includes('bike')) {
+    } else if (lowerCommand.includes('vélo') || lowerCommand.includes('bike') || lowerCommand.includes('bisiklèt')) {
       handleModeSelect('bike');
     } else if (lowerCommand.includes('bus') || lowerCommand.includes('métro') || lowerCommand.includes('transport')) {
       handleModeSelect('transit');
-    } else if (lowerCommand.includes('marche') || lowerCommand.includes('pied') || lowerCommand.includes('walk')) {
+    } else if (lowerCommand.includes('marche') || lowerCommand.includes('pied') || lowerCommand.includes('walk') || lowerCommand.includes('mache')) {
       handleModeSelect('pedestrian');
-    } else if (lowerCommand.includes('trotinette') || lowerCommand.includes('scooter')) {
+    } else if (lowerCommand.includes('scooter') || lowerCommand.includes('trotinette') || lowerCommand.includes('skoutè')) {
       handleModeSelect('scooter');
-    } else {
-      speak('Mode non reconnu. Veuillez réessayer.');
+    } else if (lowerCommand.includes('taxi') || lowerCommand.includes('taksi')) {
+      handleModeSelect('taxi');
+    } else if (lowerCommand.includes('moto')) {
+      handleModeSelect('motorcycle');
     }
   };
 
   return (
-    <div className="h-screen w-full bg-gradient-to-br from-blue-50 to-indigo-100 flex flex-col items-center justify-center p-6">
+    <div className="h-screen w-full bg-gradient-to-br from-blue-50 to-indigo-100 flex flex-col items-center justify-center p-6 overflow-auto">
       <div className="max-w-4xl w-full">
-        {/* Language Selector, Country & Voice Command */}
-        <div className="absolute top-6 right-6 flex gap-2 flex-wrap justify-end">
+
+        {/* Top controls */}
+        <div className="absolute top-6 right-6 flex gap-2 flex-wrap justify-end z-10">
           <VoiceCommandButton onCommand={handleVoiceCommand} />
           <CountrySelector />
           <LanguageSelector />
         </div>
 
-        <div className="text-center mb-8">
-          <h1 className="text-6xl mb-4">🗺️ {t('appName')}</h1>
-          <p className="text-2xl text-gray-700 mb-3">Navigation intelligente pour l'Afrique 🌍 et HAYTI 👑</p>
-          <p className="text-sm text-gray-600 mb-4">52 pays africains • Toutes les langues • Assistant vocal</p>
-
-          {/* App Metrics */}
-          <div className="flex items-center justify-center gap-4 mb-4">
-            <Badge variant="outline" className="px-3 py-1">
-              <Download className="w-3 h-3 mr-1" />
-              {(metrics.totalDownloads / 1000).toFixed(0)}K téléchargements
-            </Badge>
-            <Badge variant="outline" className="px-3 py-1">
-              <Eye className="w-3 h-3 mr-1" />
-              {(metrics.totalViews / 1000000).toFixed(1)}M vues
-            </Badge>
-            <Badge variant="outline" className="px-3 py-1">
-              ⭐ 4.8/5 ({(metrics.totalLikes / 1000).toFixed(0)}K avis)
-            </Badge>
-          </div>
-
-          {/* Like Button */}
-          <div className="flex justify-center mb-4">
-            <LikeButton itemType="app" />
-          </div>
-
-          {/* 100% Gratuit Badge */}
-          <Badge className="bg-gradient-to-r from-green-500 to-emerald-600 text-white px-4 py-2 text-base">
-            ✅ 100% GRATUIT • Aucun abonnement requis
+        {/* Header */}
+        <div className="text-center mb-6">
+          <h1 className="text-6xl mb-2">🗺️ {t('appName')}</h1>
+          <p className="text-xl text-gray-700 mb-2">{t('subtitle')}</p>
+          <Badge className="bg-gradient-to-r from-green-500 to-emerald-600 text-white px-4 py-1">
+            ✅ {t('free')}
           </Badge>
         </div>
 
-        {/* Selected Country Banner */}
+        {/* Selected Country */}
         {selectedCountry && (
           <Card className="mb-4 p-4 bg-gradient-to-r from-indigo-600 to-blue-500 text-white">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <span className="text-4xl">{selectedCountry.flag}</span>
-                <div>
-                  <h3 className="font-bold text-lg">{selectedCountry.name} — {selectedCountry.nativeName}</h3>
-                  <p className="text-sm opacity-90">
-                    {selectedCountry.capital && `🏛 ${selectedCountry.capital}`}
-                  </p>
-                </div>
-              </div>
-              <div className="text-right text-xs opacity-80">
-                {selectedCountry.languages.length} langue{selectedCountry.languages.length > 1 ? 's' : ''}
+            <div className="flex items-center gap-3">
+              <span className="text-4xl">{selectedCountry.flag}</span>
+              <div>
+                <h3 className="font-bold text-lg">{selectedCountry.name}</h3>
+                <p className="text-sm opacity-90">{selectedCountry.nativeName}</p>
               </div>
             </div>
           </Card>
         )}
 
-        {/* Cultural Banner */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+        {/* Cultural banners */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
           <Card className="p-4 bg-gradient-to-r from-green-500 via-yellow-500 to-red-500 text-white">
             <div className="flex items-center gap-3">
               <span className="text-4xl">🌍</span>
               <div>
-                <h3 className="font-bold text-lg">Afrique - Afrika - Africa</h3>
-                <p className="text-sm opacity-90">
-                  52 pays • 70+ langues africaines • Navigation locale
-                </p>
+                <h3 className="font-bold text-lg">Afrique — Afrika — Africa</h3>
+                <p className="text-sm opacity-90">52 {t('country')}s • 80+ {t('language')}s</p>
               </div>
             </div>
           </Card>
@@ -163,28 +130,29 @@ export function HomeScreen({ onSelectMode }: HomeScreenProps) {
           </Card>
         </div>
 
-        <Card className="p-8 bg-white/90 backdrop-blur">
-          <h2 className="text-2xl mb-6 text-center">{t('chooseMode')}</h2>
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-            {transportModes.map((mode) => {
+        {/* Transport modes */}
+        <Card className="p-6 bg-white/90 backdrop-blur">
+          <h2 className="text-xl mb-4 text-center font-semibold">{t('chooseMode')}</h2>
+          <div className="grid grid-cols-3 md:grid-cols-6 gap-3">
+            {transportModeList.map((mode) => {
               const Icon = mode.icon;
               return (
                 <Button
                   key={mode.id}
                   onClick={() => handleModeSelect(mode.id)}
                   variant="outline"
-                  className="h-32 flex flex-col items-center justify-center gap-3 hover:scale-105 transition-transform"
+                  className="h-24 flex flex-col items-center justify-center gap-2 hover:scale-105 transition-transform"
                 >
-                  <div className={`${mode.color} p-4 rounded-full text-white`}>
-                    <Icon className="w-8 h-8" />
+                  <div className={`${mode.color} p-3 rounded-full text-white`}>
+                    <Icon className="w-5 h-5" />
                   </div>
-                  <span className="text-sm">{mode.label}</span>
+                  <span className="text-xs text-center leading-tight">{t(mode.id)}</span>
                 </Button>
               );
             })}
           </div>
 
-          <div className="mt-6 pt-6 border-t">
+          <div className="mt-4 pt-4 border-t">
             <Button
               variant="default"
               className="w-full bg-gradient-to-r from-blue-600 to-indigo-600"
@@ -194,14 +162,8 @@ export function HomeScreen({ onSelectMode }: HomeScreenProps) {
             </Button>
           </div>
         </Card>
-
-        {/* Footer info */}
-        <p className="text-center text-sm text-gray-600 mt-8">
-          Monétisé par la publicité • Gratuit pour toujours
-        </p>
       </div>
 
-      {/* Ad Banner */}
       <AdBanner position="bottom" />
     </div>
   );

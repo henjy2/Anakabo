@@ -37,7 +37,7 @@ export const translations: Record<string, Record<string, string>> = {
     voiceAssistant: 'Voice assistant',
   },
 
-  // Kreyòl Ayisyen (Haitian Creole)
+  // Kreyòl Ayiti (Haitian Creole)
   ht: {
     appName: 'Anakabo',
     chooseMode: 'Chwazi mòd transpò ou',

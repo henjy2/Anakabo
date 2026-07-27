@@ -62,7 +62,7 @@ export const languages: Language[] = [
   { code: 'af', name: 'Afrikaans', nativeName: 'Afrikaans', region: 'South Africa', flag: '🇿🇦' },
 
   // HAYTI / AYITI et Caraïbes créolophones
-  { code: 'ht', name: 'Kreyòl Ayisyen (HAYTI)', nativeName: 'Kreyòl Ayisyen', region: 'HAYTI', flag: '🇭🇹' },
+  { code: 'ht', name: 'Kreyòl Ayiti (HAYTI)', nativeName: 'Kreyòl Ayiti', region: 'HAYTI', flag: '🇭🇹' },
   { code: 'fr-ht', name: 'Fransè (HAYTI)', nativeName: 'Fransè (HAYTI)', region: 'HAYTI', flag: '🇭🇹' },
   { code: 'gcf', name: 'Kreyòl Gwadloupéyen', nativeName: 'Kreyòl Gwadloupéyen', region: 'Guadeloupe', flag: '🇬🇵' },
   { code: 'mart', name: 'Kreyòl Matinnikè', nativeName: 'Kreyòl Matinnikè', region: 'Martinique', flag: '🇲🇶' },
@@ -123,5 +123,5 @@ export const getAfricanLanguages = () => {
 };
 
 export const getHaitianLanguages = () => {
-  return languages.filter(lang => lang.region === 'Haiti');
+  return languages.filter(lang => lang.region === 'HAYTI');
 };

@@ -30,7 +30,7 @@ export function AfricaHaitiPride() {
   ];
 
   const creoleLanguages = [
-    { flag: '🇭🇹', name: 'Kreyòl Ayisyen', region: 'HAYTI / AYITI' },
+    { flag: '🇭🇹', name: 'Kreyòl Ayiti', region: 'HAYTI / AYITI' },
     { flag: '🇬🇵', name: 'Kreyòl Gwadloupéyen', region: 'Guadeloupe' },
     { flag: '🇲🇶', name: 'Kreyòl Matinnikè', region: 'Martinique' },
     { flag: '🇬🇫', name: 'Kreyòl Gwiyanè', region: 'Guyane' },
@@ -91,7 +91,7 @@ export function AfricaHaitiPride() {
           </div>
           <div className="space-y-2">
             <p className="text-base">
-              <strong>Kreyòl Ayisyen:</strong> Nou la pou tout pèp HAYTI ki ap vwayaje toupatou nan mond lan!
+              <strong>Kreyòl Ayiti:</strong> Nou la pou tout pèp HAYTI ki ap vwayaje toupatou nan mond lan!
             </p>
             <p className="text-base">
               <strong>Fransè:</strong> Anakabo est fier de servir le peuple de HAYTI / AYITI partout dans le monde!
@@ -164,7 +164,7 @@ export function AfricaHaitiPride() {
             Parlez dans votre langue maternelle — créole, africain, européen ou asiatique!
           </p>
           <div className="flex flex-wrap justify-center gap-2 mt-3">
-            <Badge variant="secondary" className="bg-white/20 text-white">Kreyòl Ayisyen</Badge>
+            <Badge variant="secondary" className="bg-white/20 text-white">Kreyòl Ayiti</Badge>
             <Badge variant="secondary" className="bg-white/20 text-white">Kreyòl Matinnikè</Badge>
             <Badge variant="secondary" className="bg-white/20 text-white">Kreol Morisyen</Badge>
             <Badge variant="secondary" className="bg-white/20 text-white">Wolof</Badge>

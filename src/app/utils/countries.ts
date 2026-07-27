@@ -76,8 +76,8 @@ export const countries: Country[] = [
   { code: 'SC', name: 'Seychelles', nativeName: 'Seychelles', flag: '🇸🇨', region: 'africa', coordinates: [55.4920, -4.6796], zoom: 10, languages: ['fr', 'en'], currency: 'SCR', capital: 'Victoria' },
   { code: 'KM', name: 'Comoros', nativeName: 'جزر القمر', flag: '🇰🇲', region: 'africa', coordinates: [43.8722, -11.6455], zoom: 9, languages: ['ar', 'fr'], currency: 'KMF', capital: 'Moroni' },
 
-  // Haïti et Caraïbes
-  { code: 'HT', name: 'Haiti', nativeName: 'Ayiti', flag: '🇭🇹', region: 'caribbean', coordinates: [-72.2852, 18.9712], zoom: 8, languages: ['ht', 'fr-ht'], currency: 'HTG', capital: 'Port-au-Prince' },
+  // HAYTI / AYITI et Caraïbes
+  { code: 'HT', name: 'HAYTI', nativeName: 'AYITI', flag: '🇭🇹', region: 'caribbean', coordinates: [-72.2852, 18.9712], zoom: 8, languages: ['ht', 'fr-ht'], currency: 'HTG', capital: 'Pòtoprens' },
   { code: 'DO', name: 'Dominican Republic', nativeName: 'República Dominicana', flag: '🇩🇴', region: 'caribbean', coordinates: [-70.1627, 18.7357], zoom: 8, languages: ['es'], currency: 'DOP', capital: 'Saint-Domingue' },
   { code: 'JM', name: 'Jamaica', nativeName: 'Jamaica', flag: '🇯🇲', region: 'caribbean', coordinates: [-77.2975, 18.1096], zoom: 9, languages: ['en'], currency: 'JMD', capital: 'Kingston' },
   { code: 'TT', name: 'Trinidad and Tobago', nativeName: 'Trinidad and Tobago', flag: '🇹🇹', region: 'caribbean', coordinates: [-61.2225, 10.6918], zoom: 9, languages: ['en', 'fr'], currency: 'TTD', capital: 'Port of Spain' },

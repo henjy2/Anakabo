@@ -89,7 +89,7 @@ export function LanguageSelector() {
                 🌍 Afrique ({africanLanguages.length})
               </TabsTrigger>
               <TabsTrigger value="haiti">
-                🇭🇹 Haïti ({haitianLanguages.length})
+                HAYTI ({haitianLanguages.length})
               </TabsTrigger>
               <TabsTrigger value="world">
                 🌎 Monde ({internationalLanguages.length})
@@ -150,11 +150,6 @@ export function LanguageSelector() {
                     </button>
                   ))}
                 </div>
-                <div className="mt-4 p-4 bg-amber-50 rounded-lg border border-amber-200">
-                  <p className="text-sm text-amber-900">
-                    🇭🇹 <strong>Ayiti Cheri!</strong> Anakabo fèt pou tout moun k ap vwayaje nan Karayib la ak toupatou nan mond lan.
-                  </p>
-                </div>
               </TabsContent>
 
               <TabsContent value="world" className="mt-0">
@@ -188,7 +183,7 @@ export function LanguageSelector() {
           {/* Info */}
           <div className="p-3 bg-green-50 rounded-lg border border-green-200">
             <p className="text-sm text-green-900">
-              ✨ <strong>52 pays d'Afrique + Haïti + 25+ langues internationales</strong> - Navigation dans votre langue maternelle!
+              ✨ <strong>52 pays d'Afrique + HAYTI + 80+ langues</strong> — Navigation dans votre langue maternelle!
             </p>
           </div>
         </div>

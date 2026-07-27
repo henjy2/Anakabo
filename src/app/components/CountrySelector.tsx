@@ -146,7 +146,7 @@ export function CountrySelector() {
                   🌍 Afrique ({africanCountries.length})
                 </TabsTrigger>
                 <TabsTrigger value="caribbean">
-                  🇭🇹 Caraïbes ({caribbeanCountries.length})
+                  HAYTI & Caraïbes ({caribbeanCountries.length})
                 </TabsTrigger>
               </TabsList>
 
@@ -163,11 +163,6 @@ export function CountrySelector() {
                     {filterCountries(caribbeanCountries).map((country) => (
                       <CountryCard key={country.code} country={country} />
                     ))}
-                  </div>
-                  <div className="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
-                    <p className="text-sm text-blue-900">
-                      🇭🇹 <strong>Ayiti Cheri!</strong> Navigue nan tout peyi Karayib la avèk Anakabo.
-                    </p>
                   </div>
                 </TabsContent>
               </div>

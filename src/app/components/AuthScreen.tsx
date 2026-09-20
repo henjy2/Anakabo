@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Mail, Phone, Lock, User as UserIcon, Chrome } from 'lucide-react';
+import logoSrc from '@/imports/image-6.png';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Card } from './ui/card';
@@ -74,8 +75,7 @@ export function AuthScreen({ onSuccess, onSkip }: AuthScreenProps) {
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-6">
       <div className="max-w-md w-full">
         <div className="text-center mb-8">
-          <h1 className="text-5xl mb-4">🗺️ {t('appName')}</h1>
-          <p className="text-xl text-gray-700 mb-2">Bienvenue!</p>
+          <img src={logoSrc} alt="Anakabo" className="w-40 h-40 object-contain mx-auto mb-2" />
           <p className="text-sm text-gray-600">Connectez-vous pour accéder à toutes les fonctionnalités</p>
         </div>
 

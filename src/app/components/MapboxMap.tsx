@@ -1,10 +1,7 @@
-import { useState, useRef, useCallback, useEffect } from 'react';
-import Map, { Marker, Source, Layer, NavigationControl, type MapRef } from 'react-map-gl/mapbox';
-import 'mapbox-gl/dist/mapbox-gl.css';
-import { MapPin, Navigation } from 'lucide-react';
+import { useEffect, useRef } from 'react';
+import * as maplibregl from 'maplibre-gl';
+import 'maplibre-gl/dist/maplibre-gl.css';
 import { useCountry } from '../contexts/CountryContext';
-
-const MAPBOX_TOKEN = 'pk.eyJ1Ijoic2VwaGFuZSIsImEiOiJjbXFjdWlqZnkwcXU0MnJxeW10bDA3Ym12In0.PK_YiNQe-V3EHjbzJI12Kg';
 
 interface MapboxMapProps {
   origin?: [number, number] | null;
@@ -15,143 +12,88 @@ interface MapboxMapProps {
   height?: string;
 }
 
-const routeLayerStyle: any = {
-  id: 'route',
-  type: 'line',
-  layout: {
-    'line-join': 'round',
-    'line-cap': 'round',
-  },
-  paint: {
-    'line-color': '#3b82f6',
-    'line-width': 5,
-    'line-opacity': 0.85,
-  },
-};
-
-const routeCasingStyle: any = {
-  id: 'route-casing',
-  type: 'line',
-  layout: {
-    'line-join': 'round',
-    'line-cap': 'round',
-  },
-  paint: {
-    'line-color': '#1d4ed8',
-    'line-width': 8,
-    'line-opacity': 0.3,
-  },
-};
-
-const modeMapStyle: Record<string, string> = {
-  car: 'mapbox://styles/mapbox/streets-v12',
-  taxi: 'mapbox://styles/mapbox/streets-v12',
-  pedestrian: 'mapbox://styles/mapbox/outdoors-v12',
-  bike: 'mapbox://styles/mapbox/outdoors-v12',
-  scooter: 'mapbox://styles/mapbox/streets-v12',
-  transit: 'mapbox://styles/mapbox/streets-v12',
-  motorcycle: 'mapbox://styles/mapbox/streets-v12',
-  carpool: 'mapbox://styles/mapbox/streets-v12',
-  delivery: 'mapbox://styles/mapbox/streets-v12',
-  tourist: 'mapbox://styles/mapbox/outdoors-v12',
-  parent: 'mapbox://styles/mapbox/streets-v12',
-};
-
-export function MapboxMap({ origin, destination, routeGeoJSON, onMapClick, mode = 'car', height = '100%' }: MapboxMapProps) {
+export function MapboxMap({ origin, destination, routeGeoJSON, onMapClick, height = '100%' }: MapboxMapProps) {
   const { mapCenter, mapZoom } = useCountry();
-  const mapRef = useRef<MapRef>(null);
-
-  const [viewState, setViewState] = useState({
-    longitude: mapCenter[0],
-    latitude: mapCenter[1],
-    zoom: mapZoom,
-  });
+  const containerRef = useRef<HTMLDivElement>(null);
+  const mapRef = useRef<maplibregl.Map | null>(null);
+  const originMarkerRef = useRef<maplibregl.Marker | null>(null);
+  const destMarkerRef = useRef<maplibregl.Marker | null>(null);
 
   useEffect(() => {
-    setViewState(v => ({
-      ...v,
-      longitude: mapCenter[0],
-      latitude: mapCenter[1],
+    if (!containerRef.current || mapRef.current) return;
+
+    const map = new maplibregl.Map({
+      container: containerRef.current,
+      style: {
+        version: 8,
+        sources: {
+          osm: {
+            type: 'raster',
+            tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
+            tileSize: 256,
+            attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+          },
+        },
+        layers: [{ id: 'osm', type: 'raster', source: 'osm' }],
+      },
+      center: mapCenter,
       zoom: mapZoom,
-    }));
+    });
+
+    map.addControl(new maplibregl.NavigationControl(), 'bottom-right');
+
+    if (onMapClick) {
+      map.on('click', (e) => onMapClick({ lng: e.lngLat.lng, lat: e.lngLat.lat }));
+    }
+
+    mapRef.current = map;
+    return () => { map.remove(); mapRef.current = null; };
+  }, []);
+
+  useEffect(() => {
+    mapRef.current?.flyTo({ center: mapCenter, zoom: mapZoom, duration: 800 });
   }, [mapCenter, mapZoom]);
 
   useEffect(() => {
-    if (origin && destination && mapRef.current) {
-      const bounds: [[number, number], [number, number]] = [
-        [Math.min(origin[0], destination[0]) - 0.05, Math.min(origin[1], destination[1]) - 0.05],
-        [Math.max(origin[0], destination[0]) + 0.05, Math.max(origin[1], destination[1]) + 0.05],
-      ];
-      mapRef.current.fitBounds(bounds, { padding: 80, duration: 1200 });
-    } else if (origin) {
-      mapRef.current?.flyTo({ center: origin, zoom: 14, duration: 1000 });
+    originMarkerRef.current?.remove();
+    if (!origin || !mapRef.current) return;
+    const el = document.createElement('div');
+    el.style.cssText = 'width:14px;height:14px;background:#2563EB;border:3px solid white;border-radius:50%;box-shadow:0 2px 6px rgba(0,0,0,0.3);';
+    originMarkerRef.current = new maplibregl.Marker({ element: el }).setLngLat(origin).addTo(mapRef.current);
+  }, [origin]);
+
+  useEffect(() => {
+    destMarkerRef.current?.remove();
+    if (!destination || !mapRef.current) return;
+    const el = document.createElement('div');
+    el.innerHTML = `<svg width="28" height="36" viewBox="0 0 28 36" fill="none"><path d="M14 0C6.268 0 0 6.268 0 14C0 24.5 14 36 14 36C14 36 28 24.5 28 14C28 6.268 21.732 0 14 0Z" fill="#EF4444"/><circle cx="14" cy="14" r="6" fill="white"/></svg>`;
+    destMarkerRef.current = new maplibregl.Marker({ element: el, anchor: 'bottom' }).setLngLat(destination).addTo(mapRef.current);
+    if (origin) {
+      const bounds = new maplibregl.LngLatBounds(origin, destination);
+      mapRef.current.fitBounds(bounds, { padding: 80, duration: 1000 });
+    } else {
+      mapRef.current.flyTo({ center: destination, zoom: 14, duration: 800 });
     }
-  }, [origin, destination]);
+  }, [destination]);
 
-  const handleClick = useCallback(
-    (evt: { lngLat: { lng: number; lat: number } }) => {
-      onMapClick?.({ lng: evt.lngLat.lng, lat: evt.lngLat.lat });
-    },
-    [onMapClick]
-  );
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    const cleanup = () => {
+      if (map.getLayer('route')) map.removeLayer('route');
+      if (map.getLayer('route-casing')) map.removeLayer('route-casing');
+      if (map.getSource('route')) map.removeSource('route');
+    };
+    if (!routeGeoJSON) { cleanup(); return; }
+    const draw = () => {
+      cleanup();
+      map.addSource('route', { type: 'geojson', data: routeGeoJSON });
+      map.addLayer({ id: 'route-casing', type: 'line', source: 'route', layout: { 'line-join': 'round', 'line-cap': 'round' }, paint: { 'line-color': '#1d4ed8', 'line-width': 9, 'line-opacity': 0.25 } });
+      map.addLayer({ id: 'route', type: 'line', source: 'route', layout: { 'line-join': 'round', 'line-cap': 'round' }, paint: { 'line-color': '#2563EB', 'line-width': 5 } });
+    };
+    if (map.isStyleLoaded()) draw(); else map.once('load', draw);
+    return cleanup;
+  }, [routeGeoJSON]);
 
-  const mapStyle = modeMapStyle[mode] ?? 'mapbox://styles/mapbox/streets-v12';
-
-  return (
-    <div style={{ height, width: '100%' }} className="relative">
-      <Map
-        ref={mapRef}
-        {...viewState}
-        onMove={(evt) => setViewState(evt.viewState)}
-        mapStyle={mapStyle}
-        mapboxAccessToken={MAPBOX_TOKEN}
-        onClick={handleClick}
-        style={{ width: '100%', height: '100%' }}
-        attributionControl={false}
-        onError={(e) => {
-          if (e.error?.name === 'AbortError' || e.error?.message?.includes('Actor removed')) return;
-          console.error(e.error);
-        }}
-      >
-        <NavigationControl position="bottom-right" />
-
-        {/* Route */}
-        {routeGeoJSON && (
-          <Source id="route-source" type="geojson" data={routeGeoJSON}>
-            <Layer {...routeCasingStyle} />
-            <Layer {...routeLayerStyle} />
-          </Source>
-        )}
-
-        {/* Origin marker */}
-        {origin && (
-          <Marker longitude={origin[0]} latitude={origin[1]} anchor="bottom">
-            <div className="flex flex-col items-center">
-              <div className="bg-green-500 text-white rounded-full p-2 shadow-lg border-2 border-white">
-                <Navigation className="w-4 h-4" />
-              </div>
-              <div className="w-0.5 h-2 bg-green-500" />
-            </div>
-          </Marker>
-        )}
-
-        {/* Destination marker */}
-        {destination && (
-          <Marker longitude={destination[0]} latitude={destination[1]} anchor="bottom">
-            <div className="flex flex-col items-center">
-              <div className="bg-red-500 text-white rounded-full p-2 shadow-lg border-2 border-white">
-                <MapPin className="w-4 h-4" />
-              </div>
-              <div className="w-0.5 h-2 bg-red-500" />
-            </div>
-          </Marker>
-        )}
-      </Map>
-
-      {/* Attribution */}
-      <div className="absolute bottom-2 left-2 text-xs text-gray-500 bg-white/80 rounded px-1">
-        © Mapbox © OpenStreetMap
-      </div>
-    </div>
-  );
+  return <div ref={containerRef} style={{ width: '100%', height }} />;
 }

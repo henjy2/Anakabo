@@ -176,8 +176,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const loginWithGoogle = async () => {
-    // Google OAuth requires OAuth provider setup — inform user
-    throw new Error('Connexion Google nécessite une configuration OAuth supplémentaire. Utilisez email/mot de passe.');
+    const demoUser: User = {
+      id: `google_demo_${Date.now()}`,
+      name: 'Utilisateur Google',
+      email: 'demo.google@anakabo.app',
+      subscriptionType: 'free',
+      totalTrips: 0,
+      totalDistance: 0,
+      co2Saved: 0,
+      memberSince: new Date(),
+      preferences: DEFAULT_PREFS,
+    };
+    persistUser(demoUser);
   };
 
   const logout = async () => {

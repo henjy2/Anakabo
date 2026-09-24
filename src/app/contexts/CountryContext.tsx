@@ -27,8 +27,8 @@ export function CountryProvider({ children }: { children: ReactNode }) {
     localStorage.setItem('anakabo_country', country.code);
   };
 
-  const mapCenter: [number, number] = selectedCountry?.coordinates ?? [20, 5];
-  const mapZoom = selectedCountry?.zoom ?? 3;
+  const mapCenter: [number, number] = selectedCountry?.coordinates ?? [10, 25];
+  const mapZoom = selectedCountry?.zoom ?? 2;
 
   return (
     <CountryContext.Provider value={{ selectedCountry, setSelectedCountry, mapCenter, mapZoom }}>

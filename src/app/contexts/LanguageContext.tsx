@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import { getTranslation } from '../utils/translations';
+import { LANG_BCP_MAP } from '../utils/voiceLanguages';
 
 interface LanguageContextType {
   language: string;
@@ -22,26 +23,7 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
     if (!isVoiceEnabled || !('speechSynthesis' in window)) return;
 
     const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = language;
-
-    // Map language codes to speech synthesis voices
-    const langMap: Record<string, string> = {
-      fr: 'fr-FR',
-      en: 'en-US',
-      ht: 'fr-FR', // Fallback to French for Haitian Creole
-      sw: 'sw-KE',
-      ar: 'ar-SA',
-      ha: 'en-NG', // Fallback
-      yo: 'en-NG', // Fallback
-      wo: 'fr-SN', // Fallback
-      ln: 'fr-CD', // Fallback
-      am: 'am-ET',
-      zu: 'zu-ZA',
-      pt: 'pt-PT',
-      es: 'es-ES',
-    };
-
-    utterance.lang = langMap[language] || language;
+    utterance.lang = LANG_BCP_MAP[language] || language;
 
     // Try to find a voice that matches the language
     const voices = speechSynthesis.getVoices();

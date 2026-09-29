@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Analytics } from '@vercel/analytics/react';
 import { WazeMapScreen } from './components/WazeMapScreen';
 import { UserPreferences } from './components/UserPreferences';
 import { SettingsScreen } from './components/SettingsScreen';
@@ -90,6 +91,7 @@ export default function App() {
         <LanguageProvider>
           <CountryProvider>
             <AppContent />
+            <Analytics />
           </CountryProvider>
         </LanguageProvider>
       </MonetizationProvider>

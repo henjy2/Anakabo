@@ -2,12 +2,16 @@ import { createContext, useContext, useState, ReactNode, useEffect } from 'react
 
 export interface AppMetrics {
   totalRegistrations: number;
+  totalDownloads: number;
   totalViews: number;
   totalSearches: number;
+  totalLikes: number;
+  totalSubscribers: number;
   activeUsers: number;
   dailyActiveUsers: number;
   adImpressions: number;
   sponsoredClicks: number;
+  monthlyRevenue: number;
 }
 
 export interface AdConfig {
@@ -31,12 +35,16 @@ const MonetizationContext = createContext<MonetizationContextType | undefined>(u
 export function MonetizationProvider({ children }: { children: ReactNode }) {
   const [metrics, setMetrics] = useState<AppMetrics>({
     totalRegistrations: 0,
+    totalDownloads: 0,
     totalViews: 0,
     totalSearches: 0,
+    totalLikes: 0,
+    totalSubscribers: 0,
     activeUsers: 0,
     dailyActiveUsers: 0,
     adImpressions: 0,
     sponsoredClicks: 0,
+    monthlyRevenue: 0,
   });
 
   const [adConfig] = useState<AdConfig>({

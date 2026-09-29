@@ -85,7 +85,7 @@ export const PHONE_COUNTRIES: PhoneCountry[] = [
   { code: 'GW', name: 'Guinée-Bissau', dial: '+245', flag: '🇬🇼' },
   { code: 'GY', name: 'Guyana', dial: '+592', flag: '🇬🇾' },
   { code: 'GF', name: 'Guyane française', dial: '+594', flag: '🇬🇫' },
-  { code: 'HT', name: 'Haïti / Ayiti', dial: '+509', flag: '🇭🇹' },
+  { code: 'HT', name: 'Hayti', dial: '+509', flag: '🇭🇹' },
   { code: 'HN', name: 'Honduras', dial: '+504', flag: '🇭🇳' },
   { code: 'HK', name: 'Hong Kong', dial: '+852', flag: '🇭🇰' },
   { code: 'HU', name: 'Hongrie', dial: '+36', flag: '🇭🇺' },

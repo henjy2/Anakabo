@@ -4,7 +4,7 @@ import {
   Home, Briefcase, Users, ParkingCircle, Share2, Trash2,
   Volume2, VolumeX, ChevronRight, LogOut, Settings,
   BarChart3, User, Loader2, Calendar, Star, Info,
-  Plus, ZoomIn, ZoomOut, Lightbulb,
+  Plus, ZoomIn, ZoomOut, Lightbulb, Clock, Layers,
   Fuel, Coffee, Cross, Landmark, ShoppingCart, Utensils,
 } from "lucide-react";
 import { MapboxMap, type MapboxMapRef } from "./MapboxMap";
@@ -13,13 +13,16 @@ import { useCountry } from "../contexts/CountryContext";
 import { useAuth } from "../contexts/AuthContext";
 import logoSrc from "@/imports/image-6.png";
 import { ALL_VOICE_LANGUAGES, VOICE_REGIONS } from "../utils/voiceLanguages";
+import { countries } from "../utils/countries";
+import { TripPlanningModal } from "./TripPlanningModal";
+import { speakText } from "../utils/translations";
 import type { TransportMode } from "./HomeScreen";
 
-async function geocode(query: string, lat?: number, lng?: number): Promise<{ coords: [number, number]; label: string } | null> {
+async function geocode(query: string, lat?: number, lng?: number, lang = 'fr'): Promise<{ coords: [number, number]; label: string } | null> {
   try {
     const viewbox = lat && lng ? `&viewbox=${lng - 5},${lat + 5},${lng + 5},${lat - 5}&bounded=0` : '';
     const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=1&addressdetails=1${viewbox}`;
-    const res = await fetch(url, { headers: { 'Accept-Language': 'fr' } });
+    const res = await fetch(url, { headers: { 'Accept-Language': lang } });
     const data = await res.json();
     if (data.length > 0) {
       return { coords: [parseFloat(data[0].lon), parseFloat(data[0].lat)], label: data[0].display_name };
@@ -28,20 +31,20 @@ async function geocode(query: string, lat?: number, lng?: number): Promise<{ coo
   return null;
 }
 
-async function fetchSuggestions(query: string): Promise<string[]> {
+async function fetchSuggestions(query: string, lang = 'fr'): Promise<string[]> {
   if (query.length < 3) return [];
   try {
     const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=5&addressdetails=1`;
-    const res = await fetch(url, { headers: { 'Accept-Language': 'fr' } });
+    const res = await fetch(url, { headers: { 'Accept-Language': lang } });
     const data = await res.json();
     return data.map((f: any) => f.display_name as string);
   } catch { return []; }
 }
 
-async function fetchNearby(query: string, lat: number, lng: number): Promise<Array<{ label: string; coords: [number, number] }>> {
+async function fetchNearby(query: string, lat: number, lng: number, lang = 'fr'): Promise<Array<{ label: string; coords: [number, number] }>> {
   try {
     const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=3&addressdetails=1&viewbox=${lng - 0.1},${lat + 0.1},${lng + 0.1},${lat - 0.1}&bounded=0`;
-    const res = await fetch(url, { headers: { 'Accept-Language': 'fr' } });
+    const res = await fetch(url, { headers: { 'Accept-Language': lang } });
     const data = await res.json();
     return data.map((f: any) => ({
       label: f.display_name.split(',')[0],
@@ -99,28 +102,30 @@ const EXTRA_MODES: { id: TransportMode; emoji: string; label: string }[] = [
 // ALL_VOICE_LANGUAGES imported from voiceLanguages.ts
 
 const SMART_SUGGESTIONS = [
-  { icon: Fuel, label: 'Station-service', query: 'station essence', color: '#F59E0B' },
-  { icon: Utensils, label: 'Restaurant', query: 'restaurant', color: '#EF4444' },
-  { icon: Cross, label: 'Pharmacie', query: 'pharmacie', color: '#10B981' },
-  { icon: Landmark, label: 'Distributeur', query: 'distributeur banque', color: '#6366F1' },
-  { icon: ShoppingCart, label: 'Supermarché', query: 'supermarché', color: '#8B5CF6' },
-  { icon: Coffee, label: 'Café', query: 'café coffee', color: '#92400E' },
+  { icon: Fuel, key: 'gasStation', query: 'gas station fuel', color: '#F59E0B' },
+  { icon: Utensils, key: 'restaurant', query: 'restaurant', color: '#EF4444' },
+  { icon: Cross, key: 'pharmacy', query: 'pharmacy pharmacie', color: '#10B981' },
+  { icon: Landmark, key: 'atm', query: 'ATM bank distributeur', color: '#6366F1' },
+  { icon: ShoppingCart, key: 'supermarket', query: 'supermarket supermarche', color: '#8B5CF6' },
+  { icon: Coffee, key: 'cafeLabel', query: 'cafe coffee', color: '#92400E' },
 ];
 
 interface WazeMapScreenProps {
   onOpenMetrics: () => void;
   onOpenPreferences: () => void;
+  onOpenSettings?: () => void;
   onLogout: () => void;
 }
 
-export function WazeMapScreen({ onOpenMetrics, onOpenPreferences, onLogout }: WazeMapScreenProps) {
-  const { isVoiceEnabled, setVoiceEnabled, speak, language, setLanguage } = useLanguage();
-  const { selectedCountry, mapCenter } = useCountry();
+export function WazeMapScreen({ onOpenMetrics, onOpenPreferences, onOpenSettings, onLogout }: WazeMapScreenProps) {
+  const { isVoiceEnabled, setVoiceEnabled, speak, language, setLanguage, t } = useLanguage();
+  const { selectedCountry, mapCenter, setSelectedCountry } = useCountry();
   const { user } = useAuth();
 
   const suggestTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const recognitionRef = useRef<any>(null);
   const mapRef = useRef<MapboxMapRef>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
   const proximity: [number, number] = selectedCountry?.coordinates ?? mapCenter;
 
   const [menuOpen, setMenuOpen] = useState(false);
@@ -145,6 +150,10 @@ export function WazeMapScreen({ onOpenMetrics, onOpenPreferences, onLogout }: Wa
   const [showSmartSuggestions, setShowSmartSuggestions] = useState(false);
   const [smartResults, setSmartResults] = useState<Array<{ label: string; coords: [number, number]; category: string }>>([]);
   const [loadingSmarts, setLoadingSmarts] = useState(false);
+  const [showSavedPlaces, setShowSavedPlaces] = useState(false);
+  const [mapStyle, setMapStyle] = useState<'street' | 'satellite'>('street');
+  const [showTripPlanning, setShowTripPlanning] = useState(false);
+  const [speedLimit, setSpeedLimit] = useState<number | null>(null);
 
   const showToast = (msg: string) => {
     setToast(msg);
@@ -155,10 +164,10 @@ export function WazeMapScreen({ onOpenMetrics, onOpenPreferences, onLogout }: Wa
     if (suggestTimer.current) clearTimeout(suggestTimer.current);
     if (searchText.length < 3) { setSuggestions([]); return; }
     suggestTimer.current = setTimeout(async () => {
-      setSuggestions(await fetchSuggestions(searchText));
+      setSuggestions(await fetchSuggestions(searchText, language));
     }, 400);
     return () => { if (suggestTimer.current) clearTimeout(suggestTimer.current); };
-  }, [searchText]);
+  }, [searchText, language]);
 
   const doSearch = useCallback(async (query: string) => {
     if (!query.trim()) return;
@@ -167,7 +176,7 @@ export function WazeMapScreen({ onOpenMetrics, onOpenPreferences, onLogout }: Wa
     setSearchFocused(false);
     setShowSmartSuggestions(false);
     try {
-      const result = await geocode(query, proximity[1], proximity[0]);
+      const result = await geocode(query, proximity[1], proximity[0], language);
       if (result) {
         setDestCoords(result.coords);
         setDestLabel(result.label.split(',')[0]);
@@ -175,12 +184,12 @@ export function WazeMapScreen({ onOpenMetrics, onOpenPreferences, onLogout }: Wa
         const route = await calcRoute(proximity, result.coords, selectedMode);
         if (route) {
           setRouteInfo(route);
-          speak(`Itinéraire trouvé. ${route.duration} minutes, ${route.distance} kilomètres.`);
+          speak(speakText(language, 'routeFound', { dur: route.duration, dist: route.distance }));
         } else {
-          showToast('Impossible de calculer un itinéraire pour ce trajet.');
+          showToast(t('routeCalcError'));
         }
       } else {
-        showToast('Adresse introuvable. Essayez avec plus de détails.');
+        showToast(t('addressNotFound'));
       }
     } finally {
       setLoading(false);
@@ -205,13 +214,13 @@ export function WazeMapScreen({ onOpenMetrics, onOpenPreferences, onLogout }: Wa
     setSearchText(label);
     setShowSmartSuggestions(false);
     calcRoute(proximity, coords, selectedMode).then(route => {
-      if (route) { setRouteInfo(route); speak(`Itinéraire trouvé. ${route.duration} minutes.`); }
+      if (route) { setRouteInfo(route); speak(speakText(language, 'routeFoundShort', { dur: route.duration })); }
     });
-  }, [proximity, selectedMode, speak]);
+  }, [proximity, selectedMode, speak, language]);
 
   const handleVoice = useCallback(() => {
     const SR = (window as any).SpeechRecognition ?? (window as any).webkitSpeechRecognition;
-    if (!SR) { showToast('Reconnaissance vocale non disponible sur ce navigateur.'); return; }
+    if (!SR) { showToast(t('voiceNotSupported')); return; }
     if (listening) { recognitionRef.current?.stop(); setListening(false); return; }
     const rec = new SR();
     rec.lang = 'fr-FR';
@@ -223,27 +232,42 @@ export function WazeMapScreen({ onOpenMetrics, onOpenPreferences, onLogout }: Wa
   }, [listening, doSearch]);
 
   const clearRoute = useCallback(() => {
+    setSpeedLimit(null);
     setRouteInfo(null); setDestCoords(null); setDestLabel('');
     setSearchText(''); setSuggestions([]); setNavigating(false);
     setShowSmartSuggestions(false); setSmartResults([]);
   }, []);
 
   const handleQuickAction = useCallback((address: string | undefined, label: string) => {
-    if (!address) { showToast(`Adresse "${label}" non configurée. Allez dans Préférences.`); return; }
+    if (!address) { showToast(t('addressNotConfigured')); return; }
     doSearch(address);
   }, [doSearch]);
 
   const shareLocation = useCallback(() => {
-    const text = `Ma position : https://www.openstreetmap.org/?mlat=${proximity[1]}&mlon=${proximity[0]}`;
-    if (navigator.share) { navigator.share({ title: 'Ma position Anakabo', text }); }
-    else if (navigator.clipboard) { navigator.clipboard.writeText(text); showToast('Lien copié !'); }
     setMenuOpen(false);
-  }, [proximity]);
+    const doShare = (lat: number, lon: number) => {
+      const url = `https://www.openstreetmap.org/?mlat=${lat}&mlon=${lon}`;
+      if (navigator.share) {
+        navigator.share({ title: 'Ma position Anakabo', text: url, url });
+      } else if (navigator.clipboard) {
+        navigator.clipboard.writeText(url);
+        showToast(speakText(language, 'linkCopied'));
+      }
+    };
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        pos => doShare(pos.coords.latitude, pos.coords.longitude),
+        () => doShare(proximity[1], proximity[0])
+      );
+    } else {
+      doShare(proximity[1], proximity[0]);
+    }
+  }, [proximity, language]);
 
   const handleSmartSuggestion = useCallback(async (query: string, category: string) => {
     setLoadingSmarts(true);
     setShowSmartSuggestions(true);
-    const results = await fetchNearby(query, proximity[1], proximity[0]);
+    const results = await fetchNearby(query, proximity[1], proximity[0], language);
     setSmartResults(results.map(r => ({ ...r, category })));
     setLoadingSmarts(false);
   }, [proximity]);
@@ -274,6 +298,7 @@ export function WazeMapScreen({ onOpenMetrics, onOpenPreferences, onLogout }: Wa
       <div style={{ position: 'absolute', inset: 0, zIndex: 0 }}>
         <MapboxMap
           ref={mapRef}
+          mapStyle={mapStyle}
           destination={destCoords}
           routeGeoJSON={routeInfo?.geojson ?? null}
           onMapClick={handleMapClick}
@@ -318,12 +343,12 @@ export function WazeMapScreen({ onOpenMetrics, onOpenPreferences, onLogout }: Wa
                 {/* Header */}
                 <div style={{ padding: '12px 14px 8px', borderBottom: '1px solid #f1f5f9', flexShrink: 0 }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-                    <span style={{ fontWeight: 700, fontSize: 14, color: '#111' }}>🎙️ Guide vocal</span>
+                    <span style={{ fontWeight: 700, fontSize: 14, color: '#111' }}>🎙️ {t('voiceGuide')}</span>
                     <button
                       onClick={() => setVoiceEnabled(!isVoiceEnabled)}
                       style={{ fontSize: 11, padding: '4px 10px', borderRadius: 99, border: 'none', background: isVoiceEnabled ? '#DCFCE7' : '#FEE2E2', color: isVoiceEnabled ? '#16A34A' : '#DC2626', cursor: 'pointer', fontWeight: 700 }}
                     >
-                      {isVoiceEnabled ? '● Activé' : '○ Désactivé'}
+                      {isVoiceEnabled ? `● ${t('enabled')}` : `○ ${t('disabled')}`}
                     </button>
                   </div>
                   {/* Search */}
@@ -332,7 +357,7 @@ export function WazeMapScreen({ onOpenMetrics, onOpenPreferences, onLogout }: Wa
                     <input
                       value={voiceSearch}
                       onChange={e => setVoiceSearch(e.target.value)}
-                      placeholder="Rechercher une langue…"
+                      placeholder={t('searchLanguage')}
                       style={{ flex: 1, border: 'none', outline: 'none', background: 'transparent', fontSize: 12, color: '#334155' }}
                     />
                     {voiceSearch && <button onClick={() => setVoiceSearch('')} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}><X size={11} color="#94a3b8" /></button>}
@@ -343,7 +368,7 @@ export function WazeMapScreen({ onOpenMetrics, onOpenPreferences, onLogout }: Wa
                       <button
                         onClick={() => setVoiceRegion(null)}
                         style={{ flexShrink: 0, padding: '3px 8px', borderRadius: 99, fontSize: 10, fontWeight: 600, border: 'none', cursor: 'pointer', background: voiceRegion === null ? '#1E1B6B' : '#f1f5f9', color: voiceRegion === null ? 'white' : '#64748b' }}
-                      >Toutes</button>
+                      >{t('all')}</button>
                       {VOICE_REGIONS.map(r => (
                         <button
                           key={r}
@@ -357,56 +382,58 @@ export function WazeMapScreen({ onOpenMetrics, onOpenPreferences, onLogout }: Wa
                 {/* Language list */}
                 <div style={{ overflowY: 'auto', flex: 1 }}>
                   {(() => {
-                    const filtered = ALL_VOICE_LANGUAGES.filter(l => {
+                    const PINNED_CODES = ['ht', 'fr', 'en', 'es', 'pt', 'ar', 'de', 'sw', 'ha', 'yo'];
+                    const sorted = [...ALL_VOICE_LANGUAGES].sort((a, b) => a.label.localeCompare(b.label, 'fr'));
+                    const filtered = sorted.filter(l => {
                       const q = voiceSearch.toLowerCase();
-                      const matchSearch = !q || l.label.toLowerCase().includes(q) || l.native.toLowerCase().includes(q) || l.code.toLowerCase().includes(q);
+                      const matchSearch = !q || l.label.toLowerCase().includes(q) || l.native.toLowerCase().includes(q) || l.code.toLowerCase().includes(q) || (l.code === 'ht' && 'hayti'.includes(q));
                       const matchRegion = !voiceRegion || l.region === voiceRegion;
                       return matchSearch && matchRegion;
                     });
                     if (filtered.length === 0) return <div style={{ padding: '16px', textAlign: 'center', color: '#94a3b8', fontSize: 13 }}>Aucune langue trouvée</div>;
-                    // Group by region when no search
-                    if (!voiceSearch) {
-                      const regions = Array.from(new Set(filtered.map(l => l.region)));
-                      return regions.map(region => (
-                        <div key={region}>
-                          <div style={{ padding: '6px 14px 2px', fontSize: 10, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.08em', background: '#f8fafc', borderBottom: '1px solid #f1f5f9' }}>{region}</div>
-                          {filtered.filter(l => l.region === region).map(l => (
-                            <button
-                              key={l.code}
-                              onClick={() => { setLanguage(l.code); speak(`Guide vocal : ${l.label}`); setShowVoicePanel(false); setVoiceSearch(''); }}
-                              style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '8px 14px', background: language === l.code ? '#EFF6FF' : 'none', border: 'none', cursor: 'pointer', textAlign: 'left', borderBottom: '1px solid #f8fafc' }}
-                            >
-                              <span style={{ fontSize: 18, lineHeight: 1 }}>{l.flag}</span>
-                              <div style={{ flex: 1, minWidth: 0 }}>
-                                <div style={{ fontSize: 12, fontWeight: language === l.code ? 700 : 500, color: language === l.code ? '#2563EB' : '#334155', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{l.label}</div>
-                                <div style={{ fontSize: 10, color: '#94a3b8', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{l.native}</div>
-                              </div>
-                              {!l.supported && <span style={{ fontSize: 9, color: '#F59E0B', background: '#FEF3C7', padding: '1px 5px', borderRadius: 4, flexShrink: 0 }}>🔜</span>}
-                              {language === l.code && <span style={{ color: '#2563EB', fontSize: 14, flexShrink: 0 }}>✓</span>}
-                            </button>
-                          ))}
-                        </div>
-                      ));
-                    }
-                    return filtered.map(l => (
+                    const VoiceRow = ({ l }: { l: typeof ALL_VOICE_LANGUAGES[0] }) => (
                       <button
                         key={l.code}
-                        onClick={() => { setLanguage(l.code); speak(`Guide vocal : ${l.label}`); setShowVoicePanel(false); setVoiceSearch(''); }}
+                        onClick={() => {
+                          setLanguage(l.code);
+                          speak(speakText(l.code, 'voiceConfirm', { lang: l.native }), l.bcp);
+                          const primaryCountry = countries.find(c => c.languages.includes(l.code));
+                          if (primaryCountry) setSelectedCountry(primaryCountry);
+                          setShowVoicePanel(false);
+                          setVoiceSearch('');
+                        }}
                         style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '9px 14px', background: language === l.code ? '#EFF6FF' : 'none', border: 'none', cursor: 'pointer', textAlign: 'left', borderBottom: '1px solid #f8fafc' }}
                       >
                         <span style={{ fontSize: 18, lineHeight: 1 }}>{l.flag}</span>
                         <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontSize: 12, fontWeight: language === l.code ? 700 : 500, color: language === l.code ? '#2563EB' : '#334155' }}>{l.label}</div>
-                          <div style={{ fontSize: 10, color: '#94a3b8' }}>{l.native} • {l.region}</div>
+                          <div style={{ fontSize: 12, fontWeight: language === l.code ? 700 : 500, color: language === l.code ? '#2563EB' : '#334155', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{l.label}</div>
+                          <div style={{ fontSize: 10, color: '#94a3b8', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{l.native}{voiceSearch ? ` • ${l.region}` : ''}</div>
                         </div>
                         {!l.supported && <span style={{ fontSize: 9, color: '#F59E0B', background: '#FEF3C7', padding: '1px 5px', borderRadius: 4, flexShrink: 0 }}>🔜</span>}
                         {language === l.code && <span style={{ color: '#2563EB', fontSize: 14, flexShrink: 0 }}>✓</span>}
                       </button>
+                    );
+                    // Group by region when no search
+                    if (!voiceSearch) {
+                      const pinned = PINNED_CODES.map(c => sorted.find(l => l.code === c)).filter(Boolean) as typeof ALL_VOICE_LANGUAGES;
+                      const regions = Array.from(new Set(sorted.map(l => l.region)));
+                      return <>
+                        <div style={{ padding: '6px 14px 2px', fontSize: 10, fontWeight: 700, color: '#2563EB', textTransform: 'uppercase', letterSpacing: '0.08em', background: '#EFF6FF', borderBottom: '1px solid #DBEAFE' }}>⭐ {t('languages')}</div>
+                        {pinned.map(l => <VoiceRow key={l.code} l={l} />)}
+                        {regions.map(region => (
+                        <div key={region}>
+                          <div style={{ padding: '6px 14px 2px', fontSize: 10, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.08em', background: '#f8fafc', borderBottom: '1px solid #f1f5f9' }}>{region}</div>
+                          {filtered.filter(l => l.region === region).map(l => <VoiceRow key={l.code} l={l} />)}
+                        </div>
+                      ))}</>;
+                    }
+                    return filtered.map(l => (
+                      <VoiceRow key={l.code} l={l} />
                     ));
                   })()}
                 </div>
                 <div style={{ padding: '8px 14px', borderTop: '1px solid #f1f5f9', fontSize: 10, color: '#94a3b8', flexShrink: 0 }}>
-                  🔜 = Support vocal à venir • {ALL_VOICE_LANGUAGES.length} langues disponibles
+                  {t('voiceSupportNote')} • {ALL_VOICE_LANGUAGES.length} {t('languages')}
                 </div>
               </div>
             )}
@@ -446,12 +473,20 @@ export function WazeMapScreen({ onOpenMetrics, onOpenPreferences, onLogout }: Wa
         {navigating && routeInfo && (
           <div style={{ background: '#2563EB', borderRadius: 18, padding: '14px 18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', boxShadow: '0 4px 20px rgba(37,99,235,0.4)' }}>
             <div>
-              <div style={{ color: 'white', fontWeight: 700, fontSize: 18 }}>En navigation</div>
+              <div style={{ color: 'white', fontWeight: 700, fontSize: 18 }}>{t('navigating')}</div>
               <div style={{ color: 'rgba(255,255,255,0.75)', fontSize: 13 }}>{routeInfo.duration} min · {routeInfo.distance} km · {destLabel}</div>
             </div>
-            <button onClick={clearRoute} style={{ background: 'rgba(255,255,255,0.2)', color: 'white', border: 'none', borderRadius: 12, padding: '8px 16px', fontWeight: 600, cursor: 'pointer', fontSize: 13 }}>
-              Arrêter
-            </button>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              {speedLimit && (
+                <div style={{ width: 44, height: 44, borderRadius: '50%', background: 'white', border: '4px solid #EF4444', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <div style={{ fontSize: 14, fontWeight: 900, color: '#111', lineHeight: 1 }}>{speedLimit}</div>
+                  <div style={{ fontSize: 8, color: '#666', lineHeight: 1 }}>km/h</div>
+                </div>
+              )}
+              <button onClick={clearRoute} style={{ background: 'rgba(255,255,255,0.2)', color: 'white', border: 'none', borderRadius: 12, padding: '8px 16px', fontWeight: 600, cursor: 'pointer', fontSize: 13 }}>
+                {t('stopNav')}
+              </button>
+            </div>
           </div>
         )}
 
@@ -468,10 +503,10 @@ export function WazeMapScreen({ onOpenMetrics, onOpenPreferences, onLogout }: Wa
               </button>
             </div>
             <button
-              onClick={() => { setNavigating(true); speak(`Navigation démarrée vers ${destLabel}. ${routeInfo.duration} minutes.`); }}
+              onClick={() => { setNavigating(true); speak(speakText(language, 'navStarted', { dest: destLabel, dur: routeInfo.duration })); }}
               style={{ width: '100%', background: '#2563EB', color: 'white', border: 'none', borderRadius: 14, padding: '14px 0', fontWeight: 700, fontSize: 16, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
             >
-              <Navigation size={20} /> Démarrer la navigation
+              <Navigation size={20} /> {t('startNavigation')}
             </button>
           </div>
         )}
@@ -482,7 +517,7 @@ export function WazeMapScreen({ onOpenMetrics, onOpenPreferences, onLogout }: Wa
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                 <Lightbulb size={16} color="#F59E0B" />
-                <span style={{ fontWeight: 700, fontSize: 13, color: '#111' }}>Suggestions à proximité</span>
+                <span style={{ fontWeight: 700, fontSize: 13, color: '#111' }}>{t('nearbySuggestions')}</span>
               </div>
               <button onClick={() => { setShowSmartSuggestions(false); setSmartResults([]); }} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}>
                 <X size={16} color="#aaa" />
@@ -491,16 +526,16 @@ export function WazeMapScreen({ onOpenMetrics, onOpenPreferences, onLogout }: Wa
             {loadingSmarts ? (
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px 0', gap: 8 }}>
                 <Loader2 size={18} color="#2563EB" style={{ animation: 'spin 1s linear infinite' }} />
-                <span style={{ fontSize: 13, color: '#666' }}>Recherche en cours...</span>
+                <span style={{ fontSize: 13, color: '#666' }}>{t('searching')}</span>
               </div>
             ) : smartResults.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '12px 0', fontSize: 13, color: '#aaa' }}>Aucun résultat trouvé près de vous</div>
+              <div style={{ textAlign: 'center', padding: '12px 0', fontSize: 13, color: '#aaa' }}>{t('noResults')}</div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                 {smartResults.map((r, i) => (
                   <button
                     key={i}
-                    onMouseDown={() => { setDestCoords(r.coords); setDestLabel(r.label); setSearchText(r.label); setShowSmartSuggestions(false); calcRoute(proximity, r.coords, selectedMode).then(route => { if (route) { setRouteInfo(route); speak(`Itinéraire trouvé. ${route.duration} minutes.`); } }); }}
+                    onMouseDown={() => { setDestCoords(r.coords); setDestLabel(r.label); setSearchText(r.label); setShowSmartSuggestions(false); calcRoute(proximity, r.coords, selectedMode).then(route => { if (route) { setRouteInfo(route); speak(speakText(language, 'routeFoundShort', { dur: route.duration })); } }); }}
                     style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', background: '#F8FAFF', border: 'none', borderRadius: 12, cursor: 'pointer', textAlign: 'left' }}
                   >
                     <MapPin size={14} color="#2563EB" style={{ flexShrink: 0 }} />
@@ -520,7 +555,7 @@ export function WazeMapScreen({ onOpenMetrics, onOpenPreferences, onLogout }: Wa
         {showAddModePanel && (
           <div style={{ background: 'white', borderRadius: 18, padding: 14, boxShadow: '0 4px 24px rgba(0,0,0,0.12)' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-              <span style={{ fontWeight: 700, fontSize: 14, color: '#111' }}>Modes de transport supplémentaires</span>
+              <span style={{ fontWeight: 700, fontSize: 14, color: '#111' }}>{t('extraModes')}</span>
               <button onClick={() => setShowAddModePanel(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}>
                 <X size={16} color="#aaa" />
               </button>
@@ -534,12 +569,12 @@ export function WazeMapScreen({ onOpenMetrics, onOpenPreferences, onLogout }: Wa
                     onClick={() => toggleExtraMode(m)}
                     style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', borderRadius: 999, fontSize: 13, fontWeight: 600, cursor: 'pointer', border: active ? '2px solid #2563EB' : '2px solid #e5e7eb', background: active ? '#EFF6FF' : 'white', color: active ? '#2563EB' : '#444' }}
                   >
-                    <span>{m.emoji}</span><span>{m.label}</span>
+                    <span>{m.emoji}</span><span>{t(m.id) || m.label}</span>
                   </button>
                 );
               })}
             </div>
-            <div style={{ fontSize: 11, color: '#aaa', marginTop: 10 }}>Appuyez pour activer/désactiver</div>
+            <div style={{ fontSize: 11, color: '#aaa', marginTop: 10 }}>{t('pressToToggle')}</div>
           </div>
         )}
 
@@ -547,7 +582,7 @@ export function WazeMapScreen({ onOpenMetrics, onOpenPreferences, onLogout }: Wa
         <div style={{ display: 'flex', gap: 8, overflowX: 'auto', scrollbarWidth: 'none', alignItems: 'center' }}>
           {allModes.map(m => (
             <button key={m.id} onClick={() => handleModeChange(m.id)} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', borderRadius: 999, fontSize: 13, fontWeight: 600, whiteSpace: 'nowrap', flexShrink: 0, cursor: 'pointer', border: 'none', background: selectedMode === m.id ? '#2563EB' : 'white', color: selectedMode === m.id ? 'white' : '#444', boxShadow: '0 2px 8px rgba(0,0,0,0.12)' }}>
-              <span>{m.emoji}</span><span>{m.label}</span>
+              <span>{m.emoji}</span><span>{t(m.id) || m.label}</span>
             </button>
           ))}
           {/* Add transport mode */}
@@ -555,14 +590,14 @@ export function WazeMapScreen({ onOpenMetrics, onOpenPreferences, onLogout }: Wa
             onClick={() => { setShowAddModePanel(v => !v); setShowSmartSuggestions(false); }}
             style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '8px 12px', borderRadius: 999, fontSize: 12, fontWeight: 600, whiteSpace: 'nowrap', flexShrink: 0, cursor: 'pointer', border: '2px dashed #cbd5e1', background: showAddModePanel ? '#EFF6FF' : 'white', color: '#64748b', boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}
           >
-            <Plus size={14} /> Ajouter
+            <Plus size={14} /> {t('add')}
           </button>
           {/* Smart suggestion */}
           <button
             onClick={() => { setShowSmartSuggestions(v => !v); setShowAddModePanel(false); if (!showSmartSuggestions) setSmartResults([]); }}
             style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '8px 12px', borderRadius: 999, fontSize: 12, fontWeight: 600, whiteSpace: 'nowrap', flexShrink: 0, cursor: 'pointer', border: 'none', background: showSmartSuggestions ? '#FEF3C7' : 'white', color: '#D97706', boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}
           >
-            <Lightbulb size={14} /> Suggestion
+            <Lightbulb size={14} /> {t('suggestion')}
           </button>
         </div>
 
@@ -584,8 +619,9 @@ export function WazeMapScreen({ onOpenMetrics, onOpenPreferences, onLogout }: Wa
           <div style={{ display: 'flex', alignItems: 'center', padding: '14px 16px', gap: 12 }}>
             {loading ? <Loader2 size={20} color="#2563EB" style={{ flexShrink: 0, animation: 'spin 1s linear infinite' }} /> : <Search size={20} color="#aaa" style={{ flexShrink: 0 }} />}
             <input
+              ref={searchInputRef}
               type="text"
-              placeholder="Où allons-nous ?"
+              placeholder={t('searchPlaceholder')}
               value={searchText}
               onChange={e => setSearchText(e.target.value)}
               onFocus={() => setSearchFocused(true)}
@@ -609,10 +645,10 @@ export function WazeMapScreen({ onOpenMetrics, onOpenPreferences, onLogout }: Wa
             <>
               <div style={{ borderTop: '1px solid #f0f0f0', display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr' }}>
                 {[
-                  { icon: Home, label: 'Domicile', action: () => handleQuickAction(user?.preferences?.homeAddress, 'Domicile'), color: '#2563EB' },
-                  { icon: Briefcase, label: 'Travail', action: () => handleQuickAction(user?.preferences?.workAddress, 'Travail'), color: '#7C3AED' },
-                  { icon: Users, label: 'Amis', action: () => setMenuOpen(true), color: '#059669' },
-                  { icon: ParkingCircle, label: 'Parking', action: () => doSearch('parking'), color: '#D97706' },
+                  { icon: Home, label: t('home'), action: () => handleQuickAction(user?.preferences?.homeAddress, t('home')), color: '#2563EB' },
+                  { icon: Briefcase, label: t('work'), action: () => handleQuickAction(user?.preferences?.workAddress, t('work')), color: '#7C3AED' },
+                  { icon: Users, label: t('friends'), action: () => setMenuOpen(true), color: '#059669' },
+                  { icon: ParkingCircle, label: t('parkingLabel'), action: () => doSearch('parking'), color: '#D97706' },
                 ].map((a, i) => (
                   <button key={i} onClick={a.action} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, padding: '12px 4px', background: 'none', border: 'none', borderRight: i < 3 ? '1px solid #f0f0f0' : 'none', cursor: 'pointer' }}>
                     <a.icon size={20} color={a.color} />
@@ -623,16 +659,16 @@ export function WazeMapScreen({ onOpenMetrics, onOpenPreferences, onLogout }: Wa
               {/* Smart suggestion chips */}
               <div style={{ borderTop: '1px solid #f0f0f0', padding: '10px 12px', display: 'flex', gap: 6, overflowX: 'auto', scrollbarWidth: 'none' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0, fontSize: 11, color: '#F59E0B', fontWeight: 700 }}>
-                  <Lightbulb size={12} /> À proximité :
+                  <Lightbulb size={12} /> {t('nearbySuggestions')} :
                 </div>
                 {SMART_SUGGESTIONS.map((s, i) => (
                   <button
                     key={i}
-                    onClick={() => handleSmartSuggestion(s.query, s.label)}
+                    onClick={() => handleSmartSuggestion(s.query, t(s.key))}
                     style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '5px 10px', borderRadius: 99, background: '#F8FAFC', border: '1px solid #E2E8F0', fontSize: 12, color: '#334155', cursor: 'pointer', flexShrink: 0, fontWeight: 500 }}
                   >
                     <s.icon size={12} color={s.color} />
-                    {s.label}
+                    {t(s.key)}
                   </button>
                 ))}
               </div>
@@ -675,29 +711,127 @@ export function WazeMapScreen({ onOpenMetrics, onOpenPreferences, onLogout }: Wa
                   </div>
                 </div>
               )}
-              {/* Voice lang indicator in menu */}
-              <div style={{ marginTop: 10, display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(255,255,255,0.1)', borderRadius: 10, padding: '6px 10px' }}>
+              {/* Voice lang indicator in menu — clickable */}
+              <button
+                onClick={() => { setMenuOpen(false); setTimeout(() => setShowVoicePanel(true), 150); }}
+                style={{ marginTop: 10, width: '100%', display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(255,255,255,0.1)', borderRadius: 10, padding: '6px 10px', border: 'none', cursor: 'pointer', textAlign: 'left' }}
+              >
                 <span style={{ fontSize: 16 }}>{currentVoiceLang.flag}</span>
-                <span style={{ color: 'rgba(255,255,255,0.9)', fontSize: 12 }}>Guide vocal : {currentVoiceLang.label}</span>
-                <span style={{ marginLeft: 'auto', fontSize: 11, color: isVoiceEnabled ? '#4ADE80' : '#F87171', fontWeight: 600 }}>{isVoiceEnabled ? 'ON' : 'OFF'}</span>
-              </div>
+                <span style={{ color: 'rgba(255,255,255,0.9)', fontSize: 12, flex: 1 }}>{t('voiceGuide')} : {currentVoiceLang.native}</span>
+                <span style={{ fontSize: 11, color: isVoiceEnabled ? '#4ADE80' : '#F87171', fontWeight: 600 }}>{isVoiceEnabled ? 'ON' : 'OFF'}</span>
+                <ChevronRight size={13} color="rgba(255,255,255,0.5)" />
+              </button>
             </div>
 
             <div style={{ flex: 1, overflowY: 'auto' }}>
+              {/* Saved places sub-panel */}
+              {showSavedPlaces && (
+                <div style={{ background: '#F0F7FF', borderBottom: '1px solid #DBEAFE', padding: '12px 16px' }}>
+                  <div style={{ fontWeight: 700, fontSize: 13, color: '#1E40AF', marginBottom: 10 }}>{t('savedPlacesLabel')}</div>
+                  {user?.preferences?.homeAddress ? (
+                    <button onClick={() => { setShowSavedPlaces(false); setMenuOpen(false); doSearch(user.preferences!.homeAddress!); }} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '9px 10px', background: 'white', border: '1px solid #DBEAFE', borderRadius: 10, cursor: 'pointer', marginBottom: 6, textAlign: 'left' }}>
+                      <Home size={16} color="#2563EB" style={{ flexShrink: 0 }} />
+                      <div>
+                        <div style={{ fontSize: 12, fontWeight: 600, color: '#111' }}>{t('home')}</div>
+                        <div style={{ fontSize: 11, color: '#888', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 190 }}>{user.preferences.homeAddress}</div>
+                      </div>
+                    </button>
+                  ) : null}
+                  {user?.preferences?.workAddress ? (
+                    <button onClick={() => { setShowSavedPlaces(false); setMenuOpen(false); doSearch(user.preferences!.workAddress!); }} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '9px 10px', background: 'white', border: '1px solid #DBEAFE', borderRadius: 10, cursor: 'pointer', marginBottom: 6, textAlign: 'left' }}>
+                      <Briefcase size={16} color="#7C3AED" style={{ flexShrink: 0 }} />
+                      <div>
+                        <div style={{ fontSize: 12, fontWeight: 600, color: '#111' }}>{t('work')}</div>
+                        <div style={{ fontSize: 11, color: '#888', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 190 }}>{user.preferences.workAddress}</div>
+                      </div>
+                    </button>
+                  ) : null}
+                  {!user?.preferences?.homeAddress && !user?.preferences?.workAddress && (
+                    <div style={{ fontSize: 12, color: '#64748B', padding: '6px 0' }}>
+                      {t('noSavedPlaces')}
+                    </div>
+                  )}
+                  <button onClick={() => setShowSavedPlaces(false)} style={{ marginTop: 4, fontSize: 12, color: '#94A3B8', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>{t('close')} ↑</button>
+                </div>
+              )}
+
               {[
-                { icon: Calendar, label: 'Connecter le calendrier', action: () => { showToast('Fonctionnalité à venir'); setMenuOpen(false); } },
-                { icon: Users, label: 'Aller chez des amis / famille', action: () => { showToast("Entrez le nom ou l'adresse dans la recherche"); setMenuOpen(false); } },
-                { icon: Star, label: 'Lieux enregistrés', action: () => { showToast('Fonctionnalité à venir'); setMenuOpen(false); } },
-                { icon: Share2, label: 'Envoyer mon emplacement', action: shareLocation },
-                { icon: ParkingCircle, label: 'Trouver un parking', action: () => { setMenuOpen(false); doSearch('parking'); } },
-                { icon: Info, label: 'Infos trafic', action: () => { showToast('Infos trafic — Fonctionnalité à venir'); setMenuOpen(false); } },
-                { icon: BarChart3, label: 'Statistiques', action: () => { setMenuOpen(false); onOpenMetrics(); } },
-                { icon: Settings, label: 'Préférences', action: () => { setMenuOpen(false); onOpenPreferences(); } },
-                { icon: LogOut, label: 'Déconnexion', action: () => { setMenuOpen(false); onLogout(); } },
+                {
+                  icon: Calendar,
+                  label: t('tripPlanning'),
+                  sub: t('departure') + ' / ' + t('arrival'),
+                  isLogout: false,
+                  action: () => { setMenuOpen(false); setShowTripPlanning(true); },
+                },
+                {
+                  icon: Users,
+                  label: t('goToFriends'),
+                  sub: t('searchAddress'),
+                  isLogout: false,
+                  action: () => {
+                    setMenuOpen(false);
+                    setTimeout(() => {
+                      searchInputRef.current?.focus();
+                      searchInputRef.current?.select();
+                    }, 200);
+                  },
+                },
+                {
+                  icon: Star,
+                  label: t('savedPlacesLabel'),
+                  sub: user?.preferences?.homeAddress || user?.preferences?.workAddress ? t('homeWork') : t('noSavedPlaces'),
+                  isLogout: false,
+                  action: () => setShowSavedPlaces(v => !v),
+                },
+                {
+                  icon: Share2,
+                  label: t('shareLocationLabel'),
+                  sub: t('sharePosition'),
+                  isLogout: false,
+                  action: shareLocation,
+                },
+                {
+                  icon: ParkingCircle,
+                  label: t('findParking'),
+                  sub: t('searchNearby'),
+                  isLogout: false,
+                  action: () => { setMenuOpen(false); setSearchText('parking'); setTimeout(() => doSearch('parking'), 50); },
+                },
+                {
+                  icon: Info,
+                  label: t('trafficInfo'),
+                  sub: t('comingSoon'),
+                  isLogout: false,
+                  action: () => { showToast(t('trafficSoon')); setMenuOpen(false); },
+                },
+                {
+                  icon: BarChart3,
+                  label: t('statsLabel'),
+                  sub: t('appOverview'),
+                  isLogout: false,
+                  action: () => { setMenuOpen(false); onOpenMetrics(); },
+                },
+                {
+                  icon: Settings,
+                  label: t('prefsLabel'),
+                  sub: t('prefsSubtitle'),
+                  isLogout: false,
+                  action: () => { setMenuOpen(false); (onOpenSettings ?? onOpenPreferences)(); },
+                },
+                {
+                  icon: LogOut,
+                  label: t('logout'),
+                  sub: '',
+                  isLogout: true,
+                  action: () => { setMenuOpen(false); onLogout(); },
+                },
               ].map((item, i) => (
-                <button key={i} onClick={item.action} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 14, padding: '15px 18px', background: 'none', border: 'none', borderBottom: '1px solid #f5f5f5', cursor: 'pointer', textAlign: 'left' }}>
-                  <item.icon size={20} color="#2563EB" style={{ flexShrink: 0 }} />
-                  <span style={{ fontSize: 14, color: '#222', fontWeight: 500, flex: 1 }}>{item.label}</span>
+                <button key={i} onClick={item.action} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 14, padding: '13px 18px', background: 'none', border: 'none', borderBottom: '1px solid #f5f5f5', cursor: 'pointer', textAlign: 'left' }}>
+                  <item.icon size={20} color={item.isLogout ? '#EF4444' : '#2563EB'} style={{ flexShrink: 0 }} />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 14, color: item.isLogout ? '#EF4444' : '#222', fontWeight: 500 }}>{item.label}</div>
+                    {item.sub ? <div style={{ fontSize: 11, color: '#94A3B8', marginTop: 1 }}>{item.sub}</div> : null}
+                  </div>
                   <ChevronRight size={16} color="#ccc" />
                 </button>
               ))}
@@ -707,6 +841,14 @@ export function WazeMapScreen({ onOpenMetrics, onOpenPreferences, onLogout }: Wa
       )}
 
       <style>{`@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}`}</style>
+
+      {showTripPlanning && (
+        <TripPlanningModal
+          onClose={() => setShowTripPlanning(false)}
+          onConfirm={(msg: string) => { showToast(msg); setShowTripPlanning(false); }}
+          t={t}
+        />
+      )}
     </div>
   );
 }

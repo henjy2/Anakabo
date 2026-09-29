@@ -167,7 +167,7 @@ export const ALL_VOICE_LANGUAGES: VoiceLang[] = [
   { code: 'arz', label: 'Arabe égyptien', native: 'مصري', flag: '🇪🇬', bcp: 'ar-EG', region: 'Afrique Nord / Berbère', supported: false },
 
   // ── Créoles & Diasporas ──
-  { code: 'ht', label: 'Créole Haïtien', native: 'Kreyòl ayisyen', flag: '🇭🇹', bcp: 'ht-HT', region: 'Créoles & Diasporas', supported: false },
+  { code: 'ht', label: 'HAYTI — Kreyòl Ayisyen', native: 'Kreyòl ayisyen', flag: '🇭🇹', bcp: 'ht-HT', region: 'Créoles & Diasporas', supported: false },
   { code: 'gcf', label: 'Créole Guadeloupéen', native: 'Gwadloupéyen', flag: '🇬🇵', bcp: 'gcf-GP', region: 'Créoles & Diasporas', supported: false },
   { code: 'gcm', label: 'Créole Martiniquais', native: 'Kréyòl Matinitjé', flag: '🇲🇶', bcp: 'gcm-MQ', region: 'Créoles & Diasporas', supported: false },
   { code: 'rcf', label: 'Créole Réunionnais', native: 'Kréol réyoné', flag: '🇷🇪', bcp: 'rcf-RE', region: 'Créoles & Diasporas', supported: false },

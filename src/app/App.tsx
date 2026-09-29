@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { WazeMapScreen } from './components/WazeMapScreen';
 import { UserPreferences } from './components/UserPreferences';
+import { SettingsScreen } from './components/SettingsScreen';
 import { AuthScreen } from './components/AuthScreen';
 import { AppMetricsDashboard } from './components/AppMetricsDashboard';
 import { Button } from './components/ui/button';
@@ -22,7 +23,7 @@ function useAdSense() {
   }, []);
 }
 
-type Screen = 'auth' | 'map' | 'preferences' | 'metrics';
+type Screen = 'auth' | 'map' | 'preferences' | 'settings' | 'metrics';
 
 function AppContent() {
   const { isAuthenticated, logout } = useAuth();
@@ -68,10 +69,15 @@ function AppContent() {
     );
   }
 
+  if (screen === 'settings') {
+    return <SettingsScreen onClose={() => setScreen('map')} />;
+  }
+
   return (
     <WazeMapScreen
       onOpenMetrics={() => setScreen('metrics')}
       onOpenPreferences={() => setScreen('preferences')}
+      onOpenSettings={() => setScreen('settings')}
       onLogout={() => { logout(); setScreen('auth'); }}
     />
   );

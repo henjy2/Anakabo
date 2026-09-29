@@ -8,7 +8,7 @@ interface LanguageContextType {
   t: (key: string) => string;
   isVoiceEnabled: boolean;
   setVoiceEnabled: (enabled: boolean) => void;
-  speak: (text: string) => void;
+  speak: (text: string, bcpLang?: string) => void;
 }
 
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
@@ -19,11 +19,11 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
 
   const t = (key: string) => getTranslation(language, key);
 
-  const speak = (text: string) => {
+  const speak = (text: string, bcpLang?: string) => {
     if (!isVoiceEnabled || !('speechSynthesis' in window)) return;
 
     const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = LANG_BCP_MAP[language] || language;
+    utterance.lang = bcpLang || LANG_BCP_MAP[language] || language;
 
     // Try to find a voice that matches the language
     const voices = speechSynthesis.getVoices();

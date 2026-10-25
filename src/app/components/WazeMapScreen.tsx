@@ -58,13 +58,49 @@ const osrmProfiles: Record<TransportMode, string> = {
   motorcycle: 'driving', delivery: 'driving', transit: 'driving',
   bike: 'bike', scooter: 'bike',
   pedestrian: 'foot', tourist: 'foot', parent: 'foot',
+  horse: 'foot', boat: 'driving', plane: 'driving', helicopter: 'driving',
 };
+
+const DIRECT_MODE_SPEEDS: Partial<Record<TransportMode, number>> = {
+  boat: 30,
+  plane: 750,
+  helicopter: 220,
+};
+
+function directRoute(
+  origin: [number, number],
+  dest: [number, number],
+  speedKmh: number
+): { duration: number; distance: number; geojson: GeoJSON.FeatureCollection } {
+  const toRad = (value: number) => value * Math.PI / 180;
+  const earthRadiusKm = 6371;
+  const dLat = toRad(dest[1] - origin[1]);
+  const dLng = toRad(dest[0] - origin[0]);
+  const a = Math.sin(dLat / 2) ** 2
+    + Math.cos(toRad(origin[1])) * Math.cos(toRad(dest[1])) * Math.sin(dLng / 2) ** 2;
+  const distance = Math.round((earthRadiusKm * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))) * 10) / 10;
+  return {
+    duration: Math.max(1, Math.round((distance / speedKmh) * 60)),
+    distance,
+    geojson: {
+      type: 'FeatureCollection',
+      features: [{
+        type: 'Feature',
+        properties: { direct: true },
+        geometry: { type: 'LineString', coordinates: [origin, dest] },
+      }],
+    },
+  };
+}
 
 async function calcRoute(
   origin: [number, number],
   dest: [number, number],
   mode: TransportMode
 ): Promise<{ duration: number; distance: number; geojson: GeoJSON.FeatureCollection } | null> {
+  const directSpeed = DIRECT_MODE_SPEEDS[mode];
+  if (directSpeed) return directRoute(origin, dest, directSpeed);
+
   const profile = osrmProfiles[mode];
   try {
     const url = `https://router.project-osrm.org/route/v1/${profile}/${origin[0]},${origin[1]};${dest[0]},${dest[1]}?geometries=geojson&overview=full`;
@@ -97,6 +133,10 @@ const EXTRA_MODES: { id: TransportMode; emoji: string; label: string }[] = [
   { id: 'delivery', emoji: '📦', label: 'Livraison' },
   { id: 'tourist', emoji: '🧳', label: 'Tourisme' },
   { id: 'parent', emoji: '👶', label: 'Poussette' },
+  { id: 'boat', emoji: '⛵', label: 'Bateau' },
+  { id: 'plane', emoji: '✈️', label: 'Avion' },
+  { id: 'helicopter', emoji: '🚁', label: 'Hélicoptère' },
+  { id: 'horse', emoji: '🐎', label: 'Cheval' },
 ];
 
 // ALL_VOICE_LANGUAGES imported from voiceLanguages.ts
@@ -223,13 +263,13 @@ export function WazeMapScreen({ onOpenMetrics, onOpenPreferences, onOpenSettings
     if (!SR) { showToast(t('voiceNotSupported')); return; }
     if (listening) { recognitionRef.current?.stop(); setListening(false); return; }
     const rec = new SR();
-    rec.lang = 'fr-FR';
+    rec.lang = ALL_VOICE_LANGUAGES.find(item => item.code === language)?.bcp ?? language;
     rec.onstart = () => setListening(true);
     rec.onend = () => setListening(false);
     rec.onresult = (e: any) => { const text = e.results[0][0].transcript; setSearchText(text); doSearch(text); };
     recognitionRef.current = rec;
     rec.start();
-  }, [listening, doSearch]);
+  }, [listening, doSearch, language]);
 
   const clearRoute = useCallback(() => {
     setSpeedLimit(null);
@@ -693,7 +733,6 @@ export function WazeMapScreen({ onOpenMetrics, onOpenPreferences, onOpenSettings
                   <img src={logoSrc} alt="Anakabo" style={{ width: 40, height: 40, objectFit: 'contain' }} />
                   <div>
                     <div style={{ fontWeight: 900, color: 'white', fontSize: 15 }}>Anakabo</div>
-                    <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.6)', letterSpacing: '0.2em', textTransform: 'uppercase' }}>Mapp · Localise · Connecte</div>
                   </div>
                 </div>
                 <button onClick={() => setMenuOpen(false)} style={{ background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: '50%', width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>

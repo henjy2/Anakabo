@@ -217,7 +217,7 @@ export function MapScreen({ mode, onBack }: MapScreenProps) {
   const { selectedCountry, mapCenter } = useCountry();
   const { saveRouteToHistory } = useAuth();
 
-  const config = modeConfig[mode];
+  const config = modeConfig[mode as keyof typeof modeConfig] ?? modeConfig.car;
 
   const handleSearch = useCallback(async () => {
     if (!originText && !destinationText) return;

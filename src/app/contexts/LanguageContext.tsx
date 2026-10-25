@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, ReactNode, useEffect } from 'react';
+import { createContext, useContext, useState, ReactNode, useEffect, type Context } from 'react';
 import { getTranslation } from '../utils/translations';
 import { LANG_BCP_MAP } from '../utils/voiceLanguages';
 
@@ -11,7 +11,14 @@ interface LanguageContextType {
   speak: (text: string, bcpLang?: string) => void;
 }
 
-const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
+const languageGlobal = globalThis as typeof globalThis & {
+  __anakaboLanguageContext?: Context<LanguageContextType | undefined>;
+};
+
+const LanguageContext = languageGlobal.__anakaboLanguageContext
+  ?? createContext<LanguageContextType | undefined>(undefined);
+
+languageGlobal.__anakaboLanguageContext = LanguageContext;
 
 export function LanguageProvider({ children }: { children: ReactNode }) {
   const [language, setLanguage] = useState('fr');
@@ -27,7 +34,9 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
 
     // Try to find a voice that matches the language
     const voices = speechSynthesis.getVoices();
-    const matchingVoice = voices.find(voice => voice.lang.startsWith(utterance.lang.split('-')[0]));
+    const requestedLanguage = utterance.lang.toLowerCase();
+    const matchingVoice = voices.find(voice => voice.lang.toLowerCase() === requestedLanguage)
+      ?? voices.find(voice => voice.lang.toLowerCase().startsWith(requestedLanguage.split('-')[0]));
 
     if (matchingVoice) {
       utterance.voice = matchingVoice;

@@ -280,7 +280,7 @@ export function AuthScreen({ onSuccess, onSkip }: AuthScreenProps) {
                 className="w-full"
               >
                 <Chrome className="w-4 h-4 mr-2" />
-                Continuer avec Google (Démo)
+                Continuer avec Google
               </Button>
             </TabsContent>
 

@@ -1,13 +1,8 @@
 import { createContext, useContext, useState, ReactNode, useEffect, useCallback } from 'react';
-import { createClient, type SupabaseClient } from '@supabase/supabase-js';
-import { projectId, publicAnonKey } from '/utils/supabase/info';
+import { projectId, publicAnonKey } from '../../../utils/supabase/info';
+import { supabase } from '../../../utils/supabase/client';
 
 const SERVER = `https://${projectId}.supabase.co/functions/v1/make-server-7faefafb`;
-
-const supabase: SupabaseClient = createClient(
-  `https://${projectId}.supabase.co`,
-  publicAnonKey
-);
 
 export interface User {
   id: string;
@@ -110,12 +105,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (localRaw) {
       try {
         const parsed = JSON.parse(localRaw);
-        setUser({ ...parsed, memberSince: new Date(parsed.memberSince) });
+        if (String(parsed.id).startsWith('google_demo_')) {
+          localStorage.removeItem('anakabo_user');
+        } else {
+          setUser({ ...parsed, memberSince: new Date(parsed.memberSince) });
+        }
       } catch { /* ignore */ }
     }
 
-    // Restore Supabase session and fetch fresh preferences
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
+    const restoreSession = async (session: Awaited<ReturnType<typeof supabase.auth.getSession>>['data']['session']) => {
       if (!session) return;
       let savedPrefs: Partial<UserPreferences> = {};
       try {
@@ -130,7 +128,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const u = buildUser(session.user, session.access_token, savedPrefs);
       setUser(u);
       localStorage.setItem('anakabo_user', JSON.stringify(u));
+    };
+
+    supabase.auth.getSession().then(({ data: { session } }) => restoreSession(session));
+    const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session) {
+        void restoreSession(session);
+      } else {
+        setUser(null);
+        localStorage.removeItem('anakabo_user');
+      }
     });
+
+    return () => authListener.subscription.unsubscribe();
   }, []);
 
   const persistUser = (u: User) => {
@@ -139,23 +149,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const login = async (email: string, password: string) => {
-    const res = await fetch(`${SERVER}/signin`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${publicAnonKey}` },
-      body: JSON.stringify({ email, password }),
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error ?? 'Connexion échouée');
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error || !data.session) throw new Error(error?.message ?? 'Connexion échouée');
 
     let savedPrefs: Partial<UserPreferences> = {};
     try {
       const prefsRes = await fetch(`${SERVER}/preferences`, {
-        headers: { Authorization: `Bearer ${data.access_token}` },
+        headers: { Authorization: `Bearer ${data.session.access_token}` },
       });
       if (prefsRes.ok) savedPrefs = (await prefsRes.json()).preferences ?? {};
     } catch { /* ignore */ }
 
-    persistUser(buildUser(data.user, data.access_token, savedPrefs));
+    persistUser(buildUser(data.user, data.session.access_token, savedPrefs));
   };
 
   const loginWithPhone = async (phone: string) => {
@@ -176,18 +181,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const loginWithGoogle = async () => {
-    const demoUser: User = {
-      id: `google_demo_${Date.now()}`,
-      name: 'Utilisateur Google',
-      email: 'demo.google@anakabo.app',
-      subscriptionType: 'free',
-      totalTrips: 0,
-      totalDistance: 0,
-      co2Saved: 0,
-      memberSince: new Date(),
-      preferences: DEFAULT_PREFS,
-    };
-    persistUser(demoUser);
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: { redirectTo: window.location.origin },
+    });
+    if (error) throw error;
   };
 
   const logout = async () => {
@@ -197,16 +195,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const register = async (email: string, password: string, name: string) => {
-    const res = await fetch(`${SERVER}/signup`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${publicAnonKey}` },
-      body: JSON.stringify({ email, password, name }),
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: { data: { name } },
     });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error ?? "Inscription échouée");
+    if (error) throw error;
 
-    // Auto sign in after registration
-    await login(email, password);
+    if (data.session) {
+      persistUser(buildUser(data.user, data.session.access_token));
+      return;
+    }
+
+    throw new Error('Compte créé. Consultez votre courriel pour confirmer votre adresse.');
   };
 
   const updatePreferences = useCallback((preferences: Partial<UserPreferences>) => {

@@ -44,9 +44,41 @@ interface MapboxMapProps {
 }
 
 const TILE_URLS = {
-  street: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+  street: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
   satellite: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
 };
+
+const TILE_ATTRIBUTIONS = {
+  street: '&copy; OpenStreetMap contributors &copy; CARTO',
+  satellite: 'Tiles &copy; Esri &mdash; Source: Esri, USGS, NOAA',
+};
+
+const FALLBACK_CENTER: [number, number] = [-72, 19];
+
+function isValidLngLat(value: unknown): value is [number, number] {
+  if (!Array.isArray(value) || value.length < 2) return false;
+  const [lng, lat] = value;
+  return Number.isFinite(lng)
+    && Number.isFinite(lat)
+    && lng >= -180
+    && lng <= 180
+    && lat >= -90
+    && lat <= 90;
+}
+
+function hasFiniteCoordinates(value: unknown): boolean {
+  if (typeof value === 'number') return Number.isFinite(value);
+  return Array.isArray(value) && value.length > 0 && value.every(hasFiniteCoordinates);
+}
+
+function isValidRouteGeoJSON(value: GeoJSON.FeatureCollection): boolean {
+  return value.features.length > 0 && value.features.every(feature => {
+    const geometry = feature.geometry;
+    return !!geometry
+      && 'coordinates' in geometry
+      && hasFiniteCoordinates(geometry.coordinates);
+  });
+}
 
 export const MapboxMap = forwardRef<MapboxMapRef, MapboxMapProps>(
   ({ origin, destination, routeGeoJSON, onMapClick, height = '100%', mapStyle = 'street' }, ref) => {
@@ -61,29 +93,33 @@ export const MapboxMap = forwardRef<MapboxMapRef, MapboxMapProps>(
     useImperativeHandle(ref, () => ({
       zoomIn: () => mapRef.current?.zoomIn(),
       zoomOut: () => mapRef.current?.zoomOut(),
-      flyTo: (center, zoom) =>
-        mapRef.current?.flyTo([center[1], center[0]], zoom ?? mapRef.current.getZoom(), { duration: 0.8 }),
+      flyTo: (center, zoom) => {
+        const map = mapRef.current;
+        if (!map || !isValidLngLat(center)) return;
+        const targetZoom = Number.isFinite(zoom) ? zoom : map.getZoom();
+        map.flyTo([center[1], center[0]], targetZoom, { duration: 0.8 });
+      },
     }));
 
     // Initialize map once
     useEffect(() => {
       if (!containerRef.current || mapRef.current) return;
-      const lat = isFinite(mapCenter[1]) ? mapCenter[1] : 19;
-      const lng = isFinite(mapCenter[0]) ? mapCenter[0] : -72;
+      const [lng, lat] = isValidLngLat(mapCenter) ? mapCenter : FALLBACK_CENTER;
+      const initialZoom = Number.isFinite(mapZoom) ? mapZoom : 5;
       let map: L.Map;
       try {
         map = L.map(containerRef.current, {
           center: [lat, lng],
-          zoom: isFinite(mapZoom) ? mapZoom : 5,
+          zoom: initialZoom,
           zoomControl: false,
         });
       } catch {
         return;
       }
       const tl = L.tileLayer(TILE_URLS[mapStyle], {
-        attribution: mapStyle === 'satellite'
-          ? 'Tiles &copy; Esri &mdash; Source: Esri, USGS, NOAA'
-          : '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+        attribution: TILE_ATTRIBUTIONS[mapStyle],
+        subdomains: mapStyle === 'street' ? 'abcd' : undefined,
+        maxZoom: 20,
       }).addTo(map);
       tileLayerRef.current = tl;
       mapRef.current = map;
@@ -99,9 +135,9 @@ export const MapboxMap = forwardRef<MapboxMapRef, MapboxMapProps>(
       if (!map) return;
       tileLayerRef.current?.remove();
       const tl = L.tileLayer(TILE_URLS[mapStyle], {
-        attribution: mapStyle === 'satellite'
-          ? 'Tiles &copy; Esri'
-          : '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+        attribution: TILE_ATTRIBUTIONS[mapStyle],
+        subdomains: mapStyle === 'street' ? 'abcd' : undefined,
+        maxZoom: 20,
       }).addTo(map);
       tileLayerRef.current = tl;
     }, [mapStyle]);
@@ -119,11 +155,10 @@ export const MapboxMap = forwardRef<MapboxMapRef, MapboxMapProps>(
     // Center / zoom — skip if map not ready or coords invalid
     useEffect(() => {
       const map = mapRef.current;
-      if (!map) return;
-      const lat = mapCenter[1];
-      const lng = mapCenter[0];
-      if (!isFinite(lat) || !isFinite(lng)) return;
-      map.flyTo([lat, lng], mapZoom, { duration: 0.8 });
+      if (!map || !isValidLngLat(mapCenter)) return;
+      const [lng, lat] = mapCenter;
+      const nextZoom = Number.isFinite(mapZoom) ? mapZoom : map.getZoom();
+      map.flyTo([lat, lng], nextZoom, { duration: 0.8 });
     }, [mapCenter, mapZoom]);
 
     // Origin marker
@@ -132,7 +167,7 @@ export const MapboxMap = forwardRef<MapboxMapRef, MapboxMapProps>(
       if (!map) return;
       originMarkerRef.current?.remove();
       originMarkerRef.current = null;
-      if (origin) {
+      if (isValidLngLat(origin)) {
         originMarkerRef.current = L.marker([origin[1], origin[0]], { icon: originIcon }).addTo(map);
       }
     }, [origin]);
@@ -143,7 +178,7 @@ export const MapboxMap = forwardRef<MapboxMapRef, MapboxMapProps>(
       if (!map) return;
       destMarkerRef.current?.remove();
       destMarkerRef.current = null;
-      if (destination && isFinite(destination[0]) && isFinite(destination[1])) {
+      if (isValidLngLat(destination)) {
         destMarkerRef.current = L.marker([destination[1], destination[0]], { icon: destIcon }).addTo(map);
         map.flyTo([destination[1], destination[0]], 14, { duration: 0.8 });
       }
@@ -155,7 +190,7 @@ export const MapboxMap = forwardRef<MapboxMapRef, MapboxMapProps>(
       if (!map) return;
       routeLayerRef.current?.remove();
       routeLayerRef.current = null;
-      if (routeGeoJSON) {
+      if (routeGeoJSON && isValidRouteGeoJSON(routeGeoJSON)) {
         routeLayerRef.current = L.geoJSON(routeGeoJSON, {
           style: { color: '#2563EB', weight: 5, opacity: 1 },
         }).addTo(map);

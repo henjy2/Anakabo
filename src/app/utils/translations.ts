@@ -23,6 +23,10 @@ export const translations: Record<string, Record<string, string>> = {
     transit: 'Transports',
     bike: 'Vélo',
     scooter: 'Trottinette',
+    boat: 'Bateau',
+    plane: 'Avion',
+    helicopter: 'Hélicoptère',
+    horse: 'Cheval',
     carpool: 'Covoiturage',
     motorcycle: 'Moto',
     taxi: 'Taxi',
@@ -82,8 +86,6 @@ export const translations: Record<string, Record<string, string>> = {
     departure: 'Départ',
 
     arrival: 'Arrivée',
-
-    planTrip: 'Planifier',
 
     reminderSet: 'Rappel configuré !',
 
@@ -209,6 +211,10 @@ export const translations: Record<string, Record<string, string>> = {
     transit: 'Transit',
     bike: 'Bike',
     scooter: 'Scooter',
+    boat: 'Boat',
+    plane: 'Plane',
+    helicopter: 'Helicopter',
+    horse: 'Horse',
     carpool: 'Carpool',
     motorcycle: 'Motorcycle',
     taxi: 'Taxi',
@@ -268,8 +274,6 @@ export const translations: Record<string, Record<string, string>> = {
     departure: 'Departure',
 
     arrival: 'Arrival',
-
-    planTrip: 'Plan',
 
     reminderSet: 'Reminder set!',
 
@@ -396,6 +400,10 @@ export const translations: Record<string, Record<string, string>> = {
     transit: 'Transpò piblik',
     bike: 'Bisiklèt',
     scooter: 'Skoutè',
+    boat: 'Bato',
+    plane: 'Avyon',
+    helicopter: 'Elikoptè',
+    horse: 'Cheval',
     carpool: 'Kovoaturaj',
     motorcycle: 'Moto',
     taxi: 'Taksi',
@@ -455,8 +463,6 @@ export const translations: Record<string, Record<string, string>> = {
     departure: 'Depa',
 
     arrival: 'Arive',
-
-    planTrip: 'Planifye',
 
     reminderSet: 'Raple konfigire!',
 
@@ -582,6 +588,10 @@ export const translations: Record<string, Record<string, string>> = {
     transit: 'Transporte público',
     bike: 'Bicicleta',
     scooter: 'Patinete',
+    boat: 'Barco',
+    plane: 'Avión',
+    helicopter: 'Helicóptero',
+    horse: 'Caballo',
     carpool: 'Coche compartido',
     motorcycle: 'Moto',
     taxi: 'Taxi',
@@ -641,8 +651,6 @@ export const translations: Record<string, Record<string, string>> = {
     departure: 'Salida',
 
     arrival: 'Llegada',
-
-    planTrip: 'Planificar',
 
     reminderSet: '¡Recordatorio configurado!',
 
@@ -768,6 +776,10 @@ export const translations: Record<string, Record<string, string>> = {
     transit: 'Transporte público',
     bike: 'Bicicleta',
     scooter: 'Trotinete',
+    boat: 'Barco',
+    plane: 'Avião',
+    helicopter: 'Helicóptero',
+    horse: 'Cavalo',
     carpool: 'Boleia',
     motorcycle: 'Moto',
     taxi: 'Táxi',
@@ -827,8 +839,6 @@ export const translations: Record<string, Record<string, string>> = {
     departure: 'Partida',
 
     arrival: 'Chegada',
-
-    planTrip: 'Planear',
 
     reminderSet: 'Lembrete definido!',
 
@@ -954,6 +964,10 @@ export const translations: Record<string, Record<string, string>> = {
     transit: 'النقل العام',
     bike: 'دراجة',
     scooter: 'سكوتر',
+    boat: 'قارب',
+    plane: 'طائرة',
+    helicopter: 'مروحية',
+    horse: 'حصان',
     carpool: 'مشاركة السيارة',
     motorcycle: 'دراجة نارية',
     taxi: 'تاكسي',
@@ -1013,8 +1027,6 @@ export const translations: Record<string, Record<string, string>> = {
     departure: 'مغادرة',
 
     arrival: 'وصول',
-
-    planTrip: 'خطط',
 
     reminderSet: 'تم ضبط التذكير!',
 
@@ -1179,8 +1191,6 @@ export const translations: Record<string, Record<string, string>> = {
     departure: 'Abfahrt',
 
     arrival: 'Ankunft',
-
-    planTrip: 'Planen',
 
     reminderSet: 'Erinnerung gesetzt!',
 

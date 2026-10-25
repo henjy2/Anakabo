@@ -1,8 +1,8 @@
 {
-  "title": "Anakabo",
-  "description": "This app connects users with personalized voice options for various applications, enhancing accessibility and user experience across platforms.",
+  "title": "Anakabo — Navigation GPS pour l’Afrique et HAYTI",
+  "description": "Anakabo est une application GPS multimodale pour 52 pays d’Afrique et HAYTI, avec navigation vocale, alertes et plus de 80 langues.",
   "robots": {
-    "index": false
+    "index": true
   },
   "accessibility": {
     "addBypassLinks": false,

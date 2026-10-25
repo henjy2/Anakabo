@@ -20,7 +20,11 @@ export type TransportMode =
   | "delivery"
   | "bike"
   | "tourist"
-  | "parent";
+  | "parent"
+  | "boat"
+  | "plane"
+  | "helicopter"
+  | "horse";
 
 interface HomeScreenProps {
   onSelectMode: (mode: TransportMode) => void;
@@ -38,6 +42,10 @@ const transportModeList: { id: TransportMode; icon: any; emoji: string }[] = [
   { id: "delivery", icon: Package, emoji: "📦" },
   { id: "tourist", icon: BadgeInfo, emoji: "🗺️" },
   { id: "parent", icon: Baby, emoji: "👶" },
+  { id: "boat", icon: BadgeInfo, emoji: "⛵" },
+  { id: "plane", icon: BadgeInfo, emoji: "✈️" },
+  { id: "helicopter", icon: BadgeInfo, emoji: "🚁" },
+  { id: "horse", icon: BadgeInfo, emoji: "🐎" },
 ];
 
 export function HomeScreen({ onSelectMode }: HomeScreenProps) {
@@ -65,6 +73,14 @@ export function HomeScreen({ onSelectMode }: HomeScreenProps) {
       handleModeSelect("taxi");
     } else if (lowerCommand.includes("moto")) {
       handleModeSelect("motorcycle");
+    } else if (lowerCommand.includes("bateau") || lowerCommand.includes("boat")) {
+      handleModeSelect("boat");
+    } else if (lowerCommand.includes("avion") || lowerCommand.includes("plane")) {
+      handleModeSelect("plane");
+    } else if (lowerCommand.includes("hélicoptère") || lowerCommand.includes("helicopter")) {
+      handleModeSelect("helicopter");
+    } else if (lowerCommand.includes("cheval") || lowerCommand.includes("horse")) {
+      handleModeSelect("horse");
     }
   };
 

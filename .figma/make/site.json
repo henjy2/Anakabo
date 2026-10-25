@@ -1,0 +1,11 @@
+{
+  "title": "Anakabo",
+  "description": "This app connects users with personalized voice options for various applications, enhancing accessibility and user experience across platforms.",
+  "robots": {
+    "index": false
+  },
+  "accessibility": {
+    "addBypassLinks": false,
+    "ignoreReducedMotion": false
+  }
+}

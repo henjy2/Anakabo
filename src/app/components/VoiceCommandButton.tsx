@@ -8,14 +8,32 @@ interface VoiceCommandButtonProps {
   onCommand: (command: string) => void;
 }
 
+interface SpeechRecognitionResultEvent {
+  results: ArrayLike<{
+    [index: number]: { transcript: string };
+  }>;
+}
+
+interface BrowserSpeechRecognition {
+  continuous: boolean;
+  interimResults: boolean;
+  lang: string;
+  onresult: ((event: SpeechRecognitionResultEvent) => void) | null;
+  onerror: (() => void) | null;
+  onend: (() => void) | null;
+  start: () => void;
+  stop: () => void;
+}
+
 export function VoiceCommandButton({ onCommand }: VoiceCommandButtonProps) {
   const [isListening, setIsListening] = useState(false);
-  const [recognition, setRecognition] = useState<SpeechRecognition | null>(null);
+  const [recognition, setRecognition] = useState<BrowserSpeechRecognition | null>(null);
   const { language } = useLanguage();
 
   useEffect(() => {
     if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
-      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      const SpeechRecognition = (window as any).SpeechRecognition
+        || (window as any).webkitSpeechRecognition;
       const recognitionInstance = new SpeechRecognition();
 
       recognitionInstance.continuous = false;
@@ -40,7 +58,7 @@ export function VoiceCommandButton({ onCommand }: VoiceCommandButtonProps) {
 
       recognitionInstance.lang = langMap[language] || language;
 
-      recognitionInstance.onresult = (event) => {
+      recognitionInstance.onresult = (event: SpeechRecognitionResultEvent) => {
         const transcript = event.results[0][0].transcript;
         onCommand(transcript);
         setIsListening(false);

@@ -6,6 +6,7 @@ import { Input } from './ui/input';
 import { Card } from './ui/card';
 import { Label } from './ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
+import { Checkbox } from './ui/checkbox';
 import { useAuth } from '../contexts/AuthContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import { PHONE_COUNTRIES, type PhoneCountry } from '../utils/phoneCountries';
@@ -120,8 +121,23 @@ export function AuthScreen({ onSuccess, onSkip }: AuthScreenProps) {
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const { login, loginWithPhone, loginWithGoogle, register } = useAuth();
+  const [smsCode, setSmsCode] = useState('');
+  const [pendingPhone, setPendingPhone] = useState('');
+  const [smsSentAt, setSmsSentAt] = useState<number | null>(null);
+  const [smsAttempts, setSmsAttempts] = useState(0);
+  const [resendSeconds, setResendSeconds] = useState(0);
+  const [smsConsent, setSmsConsent] = useState(false);
+  const [smsError, setSmsError] = useState('');
+  const { login, requestPhoneCode, verifyPhoneCode, loginWithGoogle, register } = useAuth();
   const { t } = useLanguage();
+
+  useEffect(() => {
+    if (resendSeconds <= 0) return;
+    const timer = window.setInterval(() => {
+      setResendSeconds(value => Math.max(0, value - 1));
+    }, 1000);
+    return () => window.clearInterval(timer);
+  }, [resendSeconds]);
 
   const handleEmailLogin = async () => {
     setIsLoading(true);
@@ -135,14 +151,53 @@ export function AuthScreen({ onSuccess, onSkip }: AuthScreenProps) {
     }
   };
 
-  const handlePhoneLogin = async () => {
+  const handlePhoneCodeRequest = async () => {
+    const fullNumber = `${phoneCountry.dial}${phone.replace(/\D/g, '').replace(/^0/, '')}`;
+    if (!/^\+[1-9]\d{7,14}$/.test(fullNumber)) {
+      setSmsError('Saisissez un numéro de téléphone international valide.');
+      return;
+    }
+    if (!smsConsent) {
+      setSmsError('Votre consentement est requis pour recevoir le SMS de connexion.');
+      return;
+    }
     setIsLoading(true);
+    setSmsError('');
     try {
-      const fullNumber = `${phoneCountry.dial}${phone.replace(/^0/, '')}`;
-      await loginWithPhone(fullNumber);
+      await requestPhoneCode(fullNumber);
+      setPendingPhone(fullNumber);
+      setSmsSentAt(Date.now());
+      setSmsAttempts(0);
+      setSmsCode('');
+      setResendSeconds(60);
+    } catch (error: any) {
+      setSmsError(error?.message ?? 'Impossible d’envoyer le code SMS.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handlePhoneVerification = async () => {
+    if (!pendingPhone || !/^\d{6}$/.test(smsCode)) {
+      setSmsError('Saisissez le code à 6 chiffres reçu par SMS.');
+      return;
+    }
+    if (!smsSentAt || Date.now() - smsSentAt > 10 * 60 * 1000) {
+      setSmsError('Ce code a expiré. Demandez un nouveau code.');
+      return;
+    }
+    if (smsAttempts >= 5) {
+      setSmsError('Trop de tentatives. Demandez un nouveau code.');
+      return;
+    }
+    setIsLoading(true);
+    setSmsError('');
+    setSmsAttempts(value => value + 1);
+    try {
+      await verifyPhoneCode(pendingPhone, smsCode);
       onSuccess();
     } catch (error: any) {
-      alert(`Erreur: ${error?.message ?? 'Connexion échouée'}`);
+      setSmsError(error?.message ?? 'Code invalide ou expiré.');
     } finally {
       setIsLoading(false);
     }
@@ -238,7 +293,7 @@ export function AuthScreen({ onSuccess, onSkip }: AuthScreenProps) {
                 </div>
               </div>
 
-              {/* Phone Login — with country code selector */}
+              {/* Phone Login — Supabase Phone Auth with the configured Twilio provider */}
               <div className="space-y-2">
                 <Label htmlFor="phone">Connexion par téléphone</Label>
                 <div style={{ display: 'flex', alignItems: 'stretch' }}>
@@ -248,7 +303,12 @@ export function AuthScreen({ onSuccess, onSkip }: AuthScreenProps) {
                     type="tel"
                     placeholder="6 12 34 56 78"
                     value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
+                    onChange={(e) => {
+                      setPhone(e.target.value);
+                      setPendingPhone('');
+                      setSmsCode('');
+                      setSmsError('');
+                    }}
                     style={{
                       flex: 1, padding: '10px 12px', border: '1px solid #e2e8f0',
                       borderRadius: '0 12px 12px 0', outline: 'none',
@@ -262,14 +322,57 @@ export function AuthScreen({ onSuccess, onSkip }: AuthScreenProps) {
                 <div style={{ fontSize: 11, color: '#94a3b8', paddingLeft: 2 }}>
                   Numéro complet : {phoneCountry.flag} {phoneCountry.dial} {phone || 'X XX XX XX XX'}
                 </div>
+                <div className="flex items-start gap-2 py-1">
+                  <Checkbox
+                    id="sms-consent"
+                    checked={smsConsent}
+                    onCheckedChange={(checked) => setSmsConsent(checked === true)}
+                  />
+                  <Label htmlFor="sms-consent" className="text-xs font-normal leading-4 text-gray-600">
+                    J’accepte de recevoir un SMS de vérification. Des frais opérateur peuvent s’appliquer.
+                  </Label>
+                </div>
+                {pendingPhone && (
+                  <div className="space-y-2">
+                    <Label htmlFor="sms-code">Code de vérification</Label>
+                    <Input
+                      id="sms-code"
+                      type="text"
+                      inputMode="numeric"
+                      autoComplete="one-time-code"
+                      maxLength={6}
+                      placeholder="000000"
+                      value={smsCode}
+                      onChange={(event) => setSmsCode(event.target.value.replace(/\D/g, '').slice(0, 6))}
+                    />
+                    <p className="text-xs text-gray-500">
+                      Code valable 10 minutes. {Math.max(0, 5 - smsAttempts)} tentative(s) restante(s).
+                    </p>
+                  </div>
+                )}
+                {smsError && (
+                  <div role="alert" className="rounded-md bg-red-50 px-3 py-2 text-xs text-red-700">
+                    {smsError}
+                  </div>
+                )}
                 <Button
-                  onClick={handlePhoneLogin}
-                  disabled={isLoading || !phone}
+                  onClick={pendingPhone ? handlePhoneVerification : handlePhoneCodeRequest}
+                  disabled={isLoading || !phone || !smsConsent || (pendingPhone ? smsCode.length !== 6 : false)}
                   variant="outline"
                   className="w-full"
                 >
-                  {phoneCountry.flag} Connexion SMS — {phoneCountry.dial}
+                  {pendingPhone ? 'Vérifier le code' : `${phoneCountry.flag} Recevoir un code — ${phoneCountry.dial}`}
                 </Button>
+                {pendingPhone && (
+                  <Button
+                    onClick={handlePhoneCodeRequest}
+                    disabled={isLoading || resendSeconds > 0}
+                    variant="ghost"
+                    className="w-full"
+                  >
+                    {resendSeconds > 0 ? `Renvoyer dans ${resendSeconds} s` : 'Renvoyer le code'}
+                  </Button>
+                )}
               </div>
 
               {/* Google Login */}
@@ -374,19 +477,28 @@ export function AuthScreen({ onSuccess, onSkip }: AuthScreenProps) {
         </div>
 
         <Card className="mt-6 p-4 bg-gradient-to-r from-green-500 to-emerald-600 text-white">
-          <h3 className="font-bold mb-2">🎉 Anakabo est 100% GRATUIT!</h3>
+          <p className="font-bold mb-2">Anakabo est accessible sans abonnement</p>
           <ul className="text-sm space-y-1">
-            <li>✓ Navigation illimitée sans publicité intrusive</li>
-            <li>✓ Alertes en temps réel (accidents, travaux, radars)</li>
-            <li>✓ Planification de trajets aller-retour</li>
-            <li>✓ Itinéraires domicile-travail sauvegardés</li>
-            <li>✓ 100+ langues africaines & mondiales + assistant vocal</li>
-            <li>✓ Toutes les fonctionnalités accessibles à tous</li>
+            <li>Recherche d’adresses et aperçu d’itinéraires routiers</li>
+            <li>Carte de l’Afrique, de HAYTI et d’autres régions du monde</li>
+            <li>Préférences Maison et Bureau enregistrées localement</li>
+            <li>Catalogue de langues et guidage vocal selon les capacités de l’appareil</li>
           </ul>
           <p className="text-xs mt-3 opacity-90">
-            Monétisé par la publicité • Aucun abonnement requis
+            Certaines fonctions annoncées dans les paramètres nécessitent encore un fournisseur de données.
           </p>
         </Card>
+        <div className="mt-4 flex flex-wrap justify-center gap-1">
+          <Button variant="link" size="sm" onClick={() => { window.location.href = '/about.html'; }}>
+            À propos
+          </Button>
+          <Button variant="link" size="sm" onClick={() => { window.location.href = '/privacy.html'; }}>
+            Confidentialité
+          </Button>
+          <Button variant="link" size="sm" onClick={() => { window.location.href = '/terms.html'; }}>
+            Conditions
+          </Button>
+        </div>
       </div>
     </div>
   );

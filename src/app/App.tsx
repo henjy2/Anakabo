@@ -9,10 +9,11 @@ import { LanguageProvider } from './contexts/LanguageContext';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { MonetizationProvider } from './contexts/MonetizationContext';
 import { CountryProvider } from './contexts/CountryContext';
+import { AdConsentBanner, type AdConsent } from './components/AdConsentBanner';
 
-// Inject Google AdSense script once
-function useAdSense() {
+function useAdSense(enabled: boolean) {
   useEffect(() => {
+    if (!enabled) return;
     if (document.querySelector('script[data-adsense]')) return;
     const script = document.createElement('script');
     script.src = 'https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6092089279576992';
@@ -20,16 +21,25 @@ function useAdSense() {
     script.crossOrigin = 'anonymous';
     script.setAttribute('data-adsense', 'true');
     document.head.appendChild(script);
-  }, []);
+  }, [enabled]);
 }
 
 type Screen = 'auth' | 'map' | 'preferences' | 'settings' | 'metrics';
 
 function AppContent() {
-  const { isAuthenticated, logout } = useAuth();
+  const { isAuthenticated, isGuest, continueAsGuest, logout } = useAuth();
   const [screen, setScreen] = useState<Screen>('auth');
+  const [adConsent, setAdConsent] = useState<AdConsent>(() => {
+    const saved = localStorage.getItem('anakabo_ad_consent');
+    return saved === 'granted' || saved === 'denied' ? saved : null;
+  });
 
-  useAdSense();
+  useAdSense(adConsent === 'granted');
+
+  const updateAdConsent = (consent: Exclude<AdConsent, null>) => {
+    localStorage.setItem('anakabo_ad_consent', consent);
+    setAdConsent(consent);
+  };
 
   useEffect(() => {
     if (isAuthenticated && screen === 'auth') {
@@ -37,12 +47,18 @@ function AppContent() {
     }
   }, [isAuthenticated]);
 
-  if (!isAuthenticated || screen === 'auth') {
+  if ((!isAuthenticated && !isGuest) || screen === 'auth') {
     return (
-      <AuthScreen
-        onSuccess={() => setScreen('map')}
-        onSkip={() => setScreen('map')}
-      />
+      <>
+        <AuthScreen
+          onSuccess={() => setScreen('map')}
+          onSkip={() => {
+            continueAsGuest();
+            setScreen('map');
+          }}
+        />
+        <AdConsentBanner consent={adConsent} onChange={updateAdConsent} />
+      </>
     );
   }
 
@@ -74,12 +90,15 @@ function AppContent() {
   }
 
   return (
-    <WazeMapScreen
-      onOpenMetrics={() => setScreen('metrics')}
-      onOpenPreferences={() => setScreen('preferences')}
-      onOpenSettings={() => setScreen('settings')}
-      onLogout={() => { logout(); setScreen('auth'); }}
-    />
+    <>
+      <WazeMapScreen
+        onOpenMetrics={() => setScreen('metrics')}
+        onOpenPreferences={() => setScreen('preferences')}
+        onOpenSettings={() => setScreen('settings')}
+        onLogout={() => { void logout(); setScreen('auth'); }}
+      />
+      <AdConsentBanner consent={adConsent} onChange={updateAdConsent} />
+    </>
   );
 }
 

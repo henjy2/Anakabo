@@ -350,6 +350,20 @@ export function SettingsScreen({ onClose }: SettingsScreenProps) {
     return () => clearTimeout(timer);
   }, [toast]);
 
+  const shareApp = async () => {
+    const url = 'https://anakabo.com/';
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: 'Anakabo', text: 'Découvrez Anakabo', url });
+        return;
+      }
+      await navigator.clipboard.writeText(url);
+      setToast('Lien Anakabo copié');
+    } catch {
+      setToast('Partage annulé');
+    }
+  };
+
   // ── State helpers ────────────────────────────────────────────────────────────
 
   const set = <K extends keyof SettingsState>(key: K, value: SettingsState[K]) =>
@@ -1014,18 +1028,23 @@ export function SettingsScreen({ onClose }: SettingsScreenProps) {
 
       <div style={{ padding: '16px 16px', backgroundColor: '#fff', borderBottom: '1px solid #f3f4f6' }}>
         <p style={{ fontSize: 14, color: '#374151', lineHeight: 1.65, margin: 0 }}>
-          Anakabo est votre compagnon de navigation intelligent, communautaire et temps réel.
-          Conçu pour des trajets plus fluides, plus sûrs et mieux informés — partout en Afrique et au-delà.
+          Anakabo est un projet de cartographie et d’aide au déplacement conçu notamment
+          pour l’Afrique et HAYTI. Les fonctions nécessitant des données en temps réel
+          restent indiquées comme indisponibles tant qu’aucun fournisseur n’est connecté.
         </p>
       </div>
 
       <SectionHeader>Légal</SectionHeader>
-      {["Conditions d'utilisation", "Politique de confidentialité", "Licences open source"].map(label => (
+      {[
+        { label: "Conditions d'utilisation", url: '/terms.html' },
+        { label: 'Politique de confidentialité', url: '/privacy.html' },
+        { label: 'Licences open source', url: '/licenses.html' },
+      ].map(item => (
         <SettingRow
-          key={label}
-          label={label}
+          key={item.label}
+          label={item.label}
           right={<ChevronRight size={18} color="#9ca3af" />}
-          onPress={() => {}}
+          onPress={() => { window.location.href = item.url; }}
         />
       ))}
 
@@ -1063,7 +1082,7 @@ export function SettingsScreen({ onClose }: SettingsScreenProps) {
             Invitez vos amis
           </div>
           <div style={{ fontSize: 13, color: '#6b7280', lineHeight: 1.55 }}>
-            Partagez Anakabo avec vos proches et bénéficiez{'\n'}d'avantages exclusifs ensemble.
+            Partagez Anakabo avec vos proches pour leur faire découvrir le projet.
           </div>
         </div>
 
@@ -1076,7 +1095,7 @@ export function SettingsScreen({ onClose }: SettingsScreenProps) {
           {shareApps.map(({ label, bg, node }) => (
             <div key={label} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
               <div
-                onClick={() => {}}
+                onClick={() => { void shareApp(); }}
                 style={{
                   width: 54, height: 54, borderRadius: 16, cursor: 'pointer',
                   backgroundColor: bg,
@@ -1093,7 +1112,7 @@ export function SettingsScreen({ onClose }: SettingsScreenProps) {
 
         <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
           <button
-            onClick={() => {}}
+            onClick={() => { void shareApp(); }}
             style={{
               width: '100%', padding: '14px 0', borderRadius: 12,
               backgroundColor: '#3b82f6', border: 'none',
@@ -1101,10 +1120,10 @@ export function SettingsScreen({ onClose }: SettingsScreenProps) {
               boxShadow: '0 2px 8px rgba(59,130,246,0.35)',
             }}
           >
-            Rester en contact
+            Partager le lien Anakabo
           </button>
           <button
-            onClick={() => setToast('Redirection vers Google Play...')}
+            disabled
             style={{
               width: '100%', padding: '14px 0', borderRadius: 12,
               backgroundColor: '#f9fafb', border: '1px solid #e5e7eb',
@@ -1113,7 +1132,7 @@ export function SettingsScreen({ onClose }: SettingsScreenProps) {
             }}
           >
             <Star size={18} color="#f59e0b" fill="#f59e0b" />
-            Notez-nous
+            Application mobile bientôt disponible
           </button>
         </div>
       </div>
@@ -1178,7 +1197,10 @@ export function SettingsScreen({ onClose }: SettingsScreenProps) {
               backgroundColor: currentCategory.color,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}>
-              {React.cloneElement(currentCategory.icon as React.ReactElement, { size: 14 })}
+              {React.cloneElement(
+                currentCategory.icon as React.ReactElement<{ size?: number }>,
+                { size: 14 },
+              )}
             </div>
           )}
           <h1 style={{ margin: 0, fontSize: 17, fontWeight: 700, color: '#111827' }}>

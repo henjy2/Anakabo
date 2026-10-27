@@ -53,44 +53,15 @@ async function fetchNearby(query: string, lat: number, lng: number, lang = 'fr')
   } catch { return []; }
 }
 
-const osrmProfiles: Record<TransportMode, string> = {
-  car: 'driving', taxi: 'driving', carpool: 'driving',
-  motorcycle: 'driving', delivery: 'driving', transit: 'driving',
-  bike: 'bike', scooter: 'bike',
-  pedestrian: 'foot', tourist: 'foot', parent: 'foot',
-  horse: 'foot', boat: 'driving', plane: 'driving', helicopter: 'driving',
+const osrmProfiles: Partial<Record<TransportMode, string>> = {
+  car: 'driving',
+  taxi: 'driving',
+  carpool: 'driving',
+  delivery: 'driving',
 };
 
-const DIRECT_MODE_SPEEDS: Partial<Record<TransportMode, number>> = {
-  boat: 30,
-  plane: 750,
-  helicopter: 220,
-};
-
-function directRoute(
-  origin: [number, number],
-  dest: [number, number],
-  speedKmh: number
-): { duration: number; distance: number; geojson: GeoJSON.FeatureCollection } {
-  const toRad = (value: number) => value * Math.PI / 180;
-  const earthRadiusKm = 6371;
-  const dLat = toRad(dest[1] - origin[1]);
-  const dLng = toRad(dest[0] - origin[0]);
-  const a = Math.sin(dLat / 2) ** 2
-    + Math.cos(toRad(origin[1])) * Math.cos(toRad(dest[1])) * Math.sin(dLng / 2) ** 2;
-  const distance = Math.round((earthRadiusKm * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))) * 10) / 10;
-  return {
-    duration: Math.max(1, Math.round((distance / speedKmh) * 60)),
-    distance,
-    geojson: {
-      type: 'FeatureCollection',
-      features: [{
-        type: 'Feature',
-        properties: { direct: true },
-        geometry: { type: 'LineString', coordinates: [origin, dest] },
-      }],
-    },
-  };
+function isRouteModeSupported(mode: TransportMode) {
+  return typeof osrmProfiles[mode] === 'string';
 }
 
 async function calcRoute(
@@ -98,13 +69,12 @@ async function calcRoute(
   dest: [number, number],
   mode: TransportMode
 ): Promise<{ duration: number; distance: number; geojson: GeoJSON.FeatureCollection } | null> {
-  const directSpeed = DIRECT_MODE_SPEEDS[mode];
-  if (directSpeed) return directRoute(origin, dest, directSpeed);
-
   const profile = osrmProfiles[mode];
+  if (!profile) return null;
   try {
     const url = `https://router.project-osrm.org/route/v1/${profile}/${origin[0]},${origin[1]};${dest[0]},${dest[1]}?geometries=geojson&overview=full`;
-    const res = await fetch(url);
+    const res = await fetch(url, { signal: AbortSignal.timeout(15000) });
+    if (!res.ok) return null;
     const data = await res.json();
     if (data.routes?.length > 0) {
       const r = data.routes[0];
@@ -221,6 +191,11 @@ export function WazeMapScreen({ onOpenMetrics, onOpenPreferences, onOpenSettings
         setDestCoords(result.coords);
         setDestLabel(result.label.split(',')[0]);
         setSearchText(result.label.split(',')[0]);
+        if (!isRouteModeSupported(selectedMode)) {
+          setRouteInfo(null);
+          showToast(t('routeProviderRequired'));
+          return;
+        }
         const route = await calcRoute(proximity, result.coords, selectedMode);
         if (route) {
           setRouteInfo(route);
@@ -238,6 +213,11 @@ export function WazeMapScreen({ onOpenMetrics, onOpenPreferences, onOpenSettings
 
   const handleModeChange = useCallback(async (mode: TransportMode) => {
     setSelectedMode(mode);
+    if (!isRouteModeSupported(mode)) {
+      setRouteInfo(null);
+      showToast(t('routeProviderRequired'));
+      return;
+    }
     if (destCoords) {
       setLoading(true);
       const route = await calcRoute(proximity, destCoords, mode);
@@ -253,6 +233,11 @@ export function WazeMapScreen({ onOpenMetrics, onOpenPreferences, onOpenSettings
     setDestLabel(label);
     setSearchText(label);
     setShowSmartSuggestions(false);
+    if (!isRouteModeSupported(selectedMode)) {
+      setRouteInfo(null);
+      showToast(t('routeProviderRequired'));
+      return;
+    }
     calcRoute(proximity, coords, selectedMode).then(route => {
       if (route) { setRouteInfo(route); speak(speakText(language, 'routeFoundShort', { dur: route.duration })); }
     });
@@ -297,7 +282,10 @@ export function WazeMapScreen({ onOpenMetrics, onOpenPreferences, onOpenSettings
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         pos => doShare(pos.coords.latitude, pos.coords.longitude),
-        () => doShare(proximity[1], proximity[0])
+        () => {
+          showToast(t('locationPermissionDenied'));
+          doShare(proximity[1], proximity[0]);
+        }
       );
     } else {
       doShare(proximity[1], proximity[0]);
@@ -513,7 +501,7 @@ export function WazeMapScreen({ onOpenMetrics, onOpenPreferences, onOpenSettings
         {navigating && routeInfo && (
           <div style={{ background: '#2563EB', borderRadius: 18, padding: '14px 18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', boxShadow: '0 4px 20px rgba(37,99,235,0.4)' }}>
             <div>
-              <div style={{ color: 'white', fontWeight: 700, fontSize: 18 }}>{t('navigating')}</div>
+              <div style={{ color: 'white', fontWeight: 700, fontSize: 18 }}>{t('routeOverview')}</div>
               <div style={{ color: 'rgba(255,255,255,0.75)', fontSize: 13 }}>{routeInfo.duration} min · {routeInfo.distance} km · {destLabel}</div>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -543,10 +531,10 @@ export function WazeMapScreen({ onOpenMetrics, onOpenPreferences, onOpenSettings
               </button>
             </div>
             <button
-              onClick={() => { setNavigating(true); speak(speakText(language, 'navStarted', { dest: destLabel, dur: routeInfo.duration })); }}
+              onClick={() => { setNavigating(true); speak(speakText(language, 'routeOverviewVoice', { dest: destLabel, dur: routeInfo.duration })); }}
               style={{ width: '100%', background: '#2563EB', color: 'white', border: 'none', borderRadius: 14, padding: '14px 0', fontWeight: 700, fontSize: 16, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
             >
-              <Navigation size={20} /> {t('startNavigation')}
+              <Navigation size={20} /> {t('viewRouteOverview')}
             </button>
           </div>
         )}
@@ -575,7 +563,23 @@ export function WazeMapScreen({ onOpenMetrics, onOpenPreferences, onOpenSettings
                 {smartResults.map((r, i) => (
                   <button
                     key={i}
-                    onMouseDown={() => { setDestCoords(r.coords); setDestLabel(r.label); setSearchText(r.label); setShowSmartSuggestions(false); calcRoute(proximity, r.coords, selectedMode).then(route => { if (route) { setRouteInfo(route); speak(speakText(language, 'routeFoundShort', { dur: route.duration })); } }); }}
+                    onMouseDown={() => {
+                      setDestCoords(r.coords);
+                      setDestLabel(r.label);
+                      setSearchText(r.label);
+                      setShowSmartSuggestions(false);
+                      if (!isRouteModeSupported(selectedMode)) {
+                        setRouteInfo(null);
+                        showToast(t('routeProviderRequired'));
+                        return;
+                      }
+                      calcRoute(proximity, r.coords, selectedMode).then(route => {
+                        if (route) {
+                          setRouteInfo(route);
+                          speak(speakText(language, 'routeFoundShort', { dur: route.duration }));
+                        }
+                      });
+                    }}
                     style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', background: '#F8FAFF', border: 'none', borderRadius: 12, cursor: 'pointer', textAlign: 'left' }}
                   >
                     <MapPin size={14} color="#2563EB" style={{ flexShrink: 0 }} />

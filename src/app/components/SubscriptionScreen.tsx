@@ -72,16 +72,11 @@ const plans = [
 ];
 
 export function SubscriptionScreen({ onClose }: SubscriptionScreenProps) {
-  const { user, upgradeToPremium } = useAuth();
+  const { user } = useAuth();
 
   const handleSubscribe = (planId: string) => {
-    if (planId === 'premium') {
-      upgradeToPremium();
-      alert('Abonnement Premium activé! 🎉');
-      onClose();
-    } else if (planId === 'pro') {
-      alert('Redirection vers le paiement Pro...');
-    }
+    if (planId === 'free') return;
+    alert('Les paiements ne sont pas encore configurés. Aucun abonnement n’a été activé.');
   };
 
   return (
@@ -152,7 +147,7 @@ export function SubscriptionScreen({ onClose }: SubscriptionScreenProps) {
 
                   <Button
                     onClick={() => handleSubscribe(plan.id)}
-                    disabled={isCurrentPlan}
+                    disabled={isCurrentPlan || plan.id !== 'free'}
                     className={`w-full ${
                       plan.popular
                         ? 'bg-gradient-to-r from-purple-500 to-pink-500'
@@ -160,7 +155,7 @@ export function SubscriptionScreen({ onClose }: SubscriptionScreenProps) {
                     }`}
                     variant={plan.popular ? 'default' : 'outline'}
                   >
-                    {isCurrentPlan ? 'Plan actuel' : `Choisir ${plan.name}`}
+                    {isCurrentPlan ? 'Plan actuel' : plan.id === 'free' ? 'Choisir Gratuit' : 'Bientôt disponible'}
                   </Button>
                 </div>
               </Card>

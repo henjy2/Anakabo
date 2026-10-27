@@ -9,6 +9,7 @@ export interface Country {
   languages: string[];
   currency?: string;
   capital?: string;
+  featuredPlace?: string;
 }
 
 export const countries: Country[] = [

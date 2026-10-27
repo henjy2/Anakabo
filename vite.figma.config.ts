@@ -83,7 +83,8 @@ export default defineConfig(async (env) =>
 )
 
 async function resolveUserConfig(env: ConfigEnv): Promise<UserConfig> {
-  return typeof userConfig === 'function' ? await userConfig(env) : await userConfig
+  void env
+  return userConfig as UserConfig
 }
 
 function isProjectPath(value: unknown): value is string {

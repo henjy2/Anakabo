@@ -26,6 +26,7 @@ interface MonetizationContextType {
   trackRegistration: () => void;
   trackView: () => void;
   trackSearch: () => void;
+  trackLike: () => void;
   trackAdImpression: () => void;
   trackSponsoredClick: () => void;
 }
@@ -62,6 +63,9 @@ export function MonetizationProvider({ children }: { children: ReactNode }) {
   const trackSearch = () =>
     setMetrics(prev => ({ ...prev, totalSearches: prev.totalSearches + 1 }));
 
+  const trackLike = () =>
+    setMetrics(prev => ({ ...prev, totalLikes: prev.totalLikes + 1 }));
+
   const trackAdImpression = () =>
     setMetrics(prev => ({ ...prev, adImpressions: prev.adImpressions + 1 }));
 
@@ -79,6 +83,7 @@ export function MonetizationProvider({ children }: { children: ReactNode }) {
       trackRegistration,
       trackView,
       trackSearch,
+      trackLike,
       trackAdImpression,
       trackSponsoredClick,
     }}>

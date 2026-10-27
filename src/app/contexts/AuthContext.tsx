@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, ReactNode, useEffect, useCallback } from 'react';
-import { projectId, publicAnonKey } from '../../../utils/supabase/info';
+import { projectId } from '../../../utils/supabase/info';
 import { supabase } from '../../../utils/supabase/client';
 
 const SERVER = `https://${projectId}.supabase.co/functions/v1/make-server-7faefafb`;
@@ -42,10 +42,13 @@ export interface UserPreferences {
 interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
+  isGuest: boolean;
   login: (email: string, password: string) => Promise<void>;
-  loginWithPhone: (phone: string) => Promise<void>;
+  requestPhoneCode: (phone: string) => Promise<void>;
+  verifyPhoneCode: (phone: string, code: string) => Promise<void>;
+  continueAsGuest: () => void;
   loginWithGoogle: () => Promise<void>;
-  logout: () => void;
+  logout: () => Promise<void>;
   register: (email: string, password: string, name: string) => Promise<void>;
   updatePreferences: (preferences: Partial<UserPreferences>) => void;
   saveRouteToHistory: (route: RouteRecord) => Promise<void>;
@@ -53,6 +56,7 @@ interface AuthContextType {
 }
 
 export interface RouteRecord {
+  id?: string;
   origin: string;
   destination: string;
   mode: string;
@@ -60,6 +64,7 @@ export interface RouteRecord {
   distance?: number;
   country?: string;
   language?: string;
+  savedAt?: string;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -84,8 +89,9 @@ function buildUser(supaUser: any, token: string, savedPrefs?: Partial<UserPrefer
   const meta = supaUser.user_metadata ?? {};
   return {
     id: supaUser.id,
-    name: meta.name ?? supaUser.email?.split('@')[0] ?? 'Utilisateur',
+    name: meta.name ?? supaUser.email?.split('@')[0] ?? supaUser.phone ?? 'Utilisateur',
     email: supaUser.email ?? '',
+    phone: supaUser.phone,
     subscriptionType: 'free',
     totalTrips: 0,
     totalDistance: 0,
@@ -96,8 +102,14 @@ function buildUser(supaUser: any, token: string, savedPrefs?: Partial<UserPrefer
   };
 }
 
+function serializeLocalUser(user: User) {
+  const { accessToken: _accessToken, ...safeUser } = user;
+  return JSON.stringify(safeUser);
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
+  const isGuest = user?.id.startsWith('guest_') ?? false;
 
   // Load persisted session on mount
   useEffect(() => {
@@ -107,7 +119,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const parsed = JSON.parse(localRaw);
         if (String(parsed.id).startsWith('google_demo_')) {
           localStorage.removeItem('anakabo_user');
-        } else {
+        } else if (String(parsed.id).startsWith('guest_')) {
           setUser({ ...parsed, memberSince: new Date(parsed.memberSince) });
         }
       } catch { /* ignore */ }
@@ -116,6 +128,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const restoreSession = async (session: Awaited<ReturnType<typeof supabase.auth.getSession>>['data']['session']) => {
       if (!session) return;
       let savedPrefs: Partial<UserPreferences> = {};
+      const localUser = localStorage.getItem('anakabo_user');
+      if (localUser) {
+        try {
+          const parsed = JSON.parse(localUser);
+          if (parsed.id === session.user.id) savedPrefs = parsed.preferences ?? {};
+        } catch { /* ignore invalid local state */ }
+      }
       try {
         const res = await fetch(`${SERVER}/preferences`, {
           headers: { Authorization: `Bearer ${session.access_token}` },
@@ -127,14 +146,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } catch { /* ignore, use defaults */ }
       const u = buildUser(session.user, session.access_token, savedPrefs);
       setUser(u);
-      localStorage.setItem('anakabo_user', JSON.stringify(u));
+      localStorage.setItem('anakabo_user', serializeLocalUser(u));
     };
 
     supabase.auth.getSession().then(({ data: { session } }) => restoreSession(session));
-    const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
       if (session) {
         void restoreSession(session);
-      } else {
+      } else if (event === 'SIGNED_OUT') {
         setUser(null);
         localStorage.removeItem('anakabo_user');
       }
@@ -145,7 +164,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const persistUser = (u: User) => {
     setUser(u);
-    localStorage.setItem('anakabo_user', JSON.stringify(u));
+    localStorage.setItem('anakabo_user', serializeLocalUser(u));
   };
 
   const login = async (email: string, password: string) => {
@@ -163,13 +182,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     persistUser(buildUser(data.user, data.session.access_token, savedPrefs));
   };
 
-  const loginWithPhone = async (phone: string) => {
-    // Phone auth not available without SMS provider — create guest session
-    const guestUser: User = {
-      id: `phone_${phone.replace(/\D/g, '')}`,
-      name: 'Utilisateur Mobile',
-      email: '',
+  const requestPhoneCode = async (phone: string) => {
+    const { error } = await supabase.auth.signInWithOtp({
       phone,
+      options: { shouldCreateUser: true },
+    });
+    if (error) throw error;
+  };
+
+  const verifyPhoneCode = async (phone: string, code: string) => {
+    const { data, error } = await supabase.auth.verifyOtp({
+      phone,
+      token: code,
+      type: 'sms',
+    });
+    if (error || !data.session || !data.user) {
+      throw new Error(error?.message ?? 'Code invalide ou expiré');
+    }
+    persistUser(buildUser(data.user, data.session.access_token));
+  };
+
+  const continueAsGuest = () => {
+    const existing = localStorage.getItem('anakabo_guest_id');
+    const guestId = existing ?? `guest_${crypto.randomUUID()}`;
+    localStorage.setItem('anakabo_guest_id', guestId);
+    const guestUser: User = {
+      id: guestId,
+      name: 'Invité',
+      email: '',
       subscriptionType: 'free',
       totalTrips: 0,
       totalDistance: 0,
@@ -232,34 +272,55 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [user]);
 
   const saveRouteToHistory = useCallback(async (route: RouteRecord) => {
+    const historyKey = `anakabo_route_history:${user?.id ?? 'guest'}`;
+    const savedRoute = {
+      ...route,
+      id: crypto.randomUUID(),
+      savedAt: new Date().toISOString(),
+    };
+    let localRoutes: RouteRecord[] = [];
     try {
-      const sessionId = user?.id ?? `anon_${Date.now()}`;
-      await fetch(`${SERVER}/routes/history`, {
+      localRoutes = JSON.parse(localStorage.getItem(historyKey) ?? '[]');
+    } catch { /* ignore invalid local history */ }
+    localStorage.setItem(historyKey, JSON.stringify([savedRoute, ...localRoutes].slice(0, 20)));
+
+    if (!user?.accessToken) return;
+    try {
+      const response = await fetch(`${SERVER}/routes/history`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${user?.accessToken ?? publicAnonKey}`,
+          Authorization: `Bearer ${user.accessToken}`,
         },
-        body: JSON.stringify({ ...route, sessionId }),
+        body: JSON.stringify(route),
       });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
     } catch (err) {
       console.log(`Failed to save route history: ${err}`);
     }
   }, [user]);
 
   const getRouteHistory = useCallback(async (): Promise<RouteRecord[]> => {
+    const historyKey = `anakabo_route_history:${user?.id ?? 'guest'}`;
+    const getLocalHistory = () => {
+      try {
+        return JSON.parse(localStorage.getItem(historyKey) ?? '[]') as RouteRecord[];
+      } catch {
+        return [];
+      }
+    };
+    if (!user?.accessToken) return getLocalHistory();
+
     try {
-      const sessionId = user?.id ?? 'anonymous';
-      const res = await fetch(
-        `${SERVER}/routes/history?sessionId=${sessionId}`,
-        { headers: { Authorization: `Bearer ${user?.accessToken ?? publicAnonKey}` } }
-      );
-      if (!res.ok) return [];
+      const res = await fetch(`${SERVER}/routes/history`, {
+        headers: { Authorization: `Bearer ${user.accessToken}` },
+      });
+      if (!res.ok) return getLocalHistory();
       const data = await res.json();
       return data.routes ?? [];
     } catch (err) {
       console.log(`Failed to fetch route history: ${err}`);
-      return [];
+      return getLocalHistory();
     }
   }, [user]);
 
@@ -267,9 +328,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     <AuthContext.Provider
       value={{
         user,
-        isAuthenticated: !!user,
+        isAuthenticated: !!user?.accessToken && !isGuest,
+        isGuest,
         login,
-        loginWithPhone,
+        requestPhoneCode,
+        verifyPhoneCode,
+        continueAsGuest,
         loginWithGoogle,
         logout,
         register,

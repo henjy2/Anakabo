@@ -169,7 +169,7 @@ export const ALL_VOICE_LANGUAGES: VoiceLang[] = [
   // ── Créoles & Diasporas ──
   { code: 'ht', label: 'HAYTI — Kreyòl Ayisyen', native: 'Kreyòl ayisyen', flag: '🇭🇹', bcp: 'ht-HT', region: 'Créoles & Diasporas', supported: false },
   { code: 'gcf', label: 'Créole Guadeloupéen', native: 'Gwadloupéyen', flag: '🇬🇵', bcp: 'gcf-GP', region: 'Créoles & Diasporas', supported: false },
-  { code: 'gcm', label: 'Créole Martiniquais', native: 'Kréyòl Matinitjé', flag: '🇲🇶', bcp: 'gcm-MQ', region: 'Créoles & Diasporas', supported: false },
+  { code: 'gcm', label: 'Créole Martiniquais', native: 'Kréyòl Matinikè', flag: '🇲🇶', bcp: 'gcm-MQ', region: 'Créoles & Diasporas', supported: false },
   { code: 'rcf', label: 'Créole Réunionnais', native: 'Kréol réyoné', flag: '🇷🇪', bcp: 'rcf-RE', region: 'Créoles & Diasporas', supported: false },
   { code: 'mfe', label: 'Créole Mauricien', native: 'Morisyen', flag: '🇲🇺', bcp: 'mfe-MU', region: 'Créoles & Diasporas', supported: false },
   { code: 'cape', label: 'Créole Cap-Verdien', native: 'Kriolu', flag: '🇨🇻', bcp: 'kea-CV', region: 'Créoles & Diasporas', supported: false },

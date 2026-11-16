@@ -1,4 +1,4 @@
-# AnaAfrikgo
+# Anakabo
 
 Application de navigation et de transport multimodal.
 

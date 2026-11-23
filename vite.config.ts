@@ -21,19 +21,6 @@ export default defineConfig({
   assetsInclude: ['**/*.svg', '**/*.csv'],
 
   build: {
-    rollupOptions: {
-      output: {
-        manualChunks(id) {
-          if (!id.includes('node_modules')) return
-          if (id.includes('@supabase')) return 'supabase'
-          if (id.includes('/leaflet/')) return 'leaflet'
-          if (id.includes('lucide-react')) return 'icons'
-          if (id.includes('@radix-ui')) return 'radix'
-          if (id.includes('/react/') || id.includes('/react-dom/')) return 'react'
-          return 'vendor'
-        },
-      },
-    },
+    chunkSizeWarningLimit: 1300,
   },
-
 })

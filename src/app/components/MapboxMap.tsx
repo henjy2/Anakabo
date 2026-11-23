@@ -44,12 +44,12 @@ interface MapboxMapProps {
 }
 
 const TILE_URLS = {
-  street: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
+  street: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}',
   satellite: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
 };
 
 const TILE_ATTRIBUTIONS = {
-  street: '&copy; OpenStreetMap contributors &copy; CARTO',
+  street: 'Tiles &copy; Esri',
   satellite: 'Tiles &copy; Esri &mdash; Source: Esri, USGS, NOAA',
 };
 
@@ -118,8 +118,7 @@ export const MapboxMap = forwardRef<MapboxMapRef, MapboxMapProps>(
       }
       const tl = L.tileLayer(TILE_URLS[mapStyle], {
         attribution: TILE_ATTRIBUTIONS[mapStyle],
-        subdomains: mapStyle === 'street' ? 'abcd' : undefined,
-        maxZoom: 20,
+        maxZoom: 19,
       }).addTo(map);
       tileLayerRef.current = tl;
       mapRef.current = map;
@@ -136,8 +135,7 @@ export const MapboxMap = forwardRef<MapboxMapRef, MapboxMapProps>(
       tileLayerRef.current?.remove();
       const tl = L.tileLayer(TILE_URLS[mapStyle], {
         attribution: TILE_ATTRIBUTIONS[mapStyle],
-        subdomains: mapStyle === 'street' ? 'abcd' : undefined,
-        maxZoom: 20,
+        maxZoom: 19,
       }).addTo(map);
       tileLayerRef.current = tl;
     }, [mapStyle]);

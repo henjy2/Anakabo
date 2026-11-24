@@ -21,8 +21,8 @@ const LanguageContext = languageGlobal.__anakaboLanguageContext
 languageGlobal.__anakaboLanguageContext = LanguageContext;
 
 export function LanguageProvider({ children }: { children: ReactNode }) {
-  const [language, setLanguage] = useState('fr');
-  const [isVoiceEnabled, setVoiceEnabled] = useState(true);
+  const [language, setLanguage] = useState(() => localStorage.getItem('anakabo_language') ?? 'fr');
+  const [isVoiceEnabled, setVoiceEnabled] = useState(() => localStorage.getItem('anakabo_voice_enabled') !== 'false');
 
   const t = (key: string) => getTranslation(language, key);
 
@@ -55,6 +55,14 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
       };
     }
   }, []);
+
+  useEffect(() => {
+    localStorage.setItem('anakabo_language', language);
+  }, [language]);
+
+  useEffect(() => {
+    localStorage.setItem('anakabo_voice_enabled', String(isVoiceEnabled));
+  }, [isVoiceEnabled]);
 
   return (
     <LanguageContext.Provider value={{ language, setLanguage, t, isVoiceEnabled, setVoiceEnabled, speak }}>

@@ -12,11 +12,26 @@ import { useLanguage } from "../contexts/LanguageContext";
 import { useCountry } from "../contexts/CountryContext";
 import { useAuth } from "../contexts/AuthContext";
 import logoSrc from "@/imports/image-6.png";
-import { ALL_VOICE_LANGUAGES, VOICE_REGIONS } from "../utils/voiceLanguages";
-import { countries } from "../utils/countries";
+import { ALL_VOICE_LANGUAGES } from "../utils/voiceLanguages";
 import { TripPlanningModal } from "./TripPlanningModal";
 import { speakText } from "../utils/translations";
 import type { TransportMode } from "./HomeScreen";
+
+function formatAddress(item: any): string {
+  const address = item?.address ?? {};
+  const street = [address.house_number, address.road ?? address.pedestrian ?? address.footway]
+    .filter(Boolean)
+    .join(' ');
+  const locality = address.city ?? address.town ?? address.village ?? address.municipality;
+  const parts = [
+    street,
+    address.suburb ?? address.neighbourhood,
+    locality,
+    address.state,
+    address.country,
+  ].filter(Boolean);
+  return parts.length > 1 ? Array.from(new Set(parts)).join(', ') : item?.display_name ?? parts[0] ?? '';
+}
 
 async function geocode(query: string, lat?: number, lng?: number, lang = 'fr'): Promise<{ coords: [number, number]; label: string } | null> {
   try {
@@ -25,7 +40,7 @@ async function geocode(query: string, lat?: number, lng?: number, lang = 'fr'): 
     const res = await fetch(url, { headers: { 'Accept-Language': lang } });
     const data = await res.json();
     if (data.length > 0) {
-      return { coords: [parseFloat(data[0].lon), parseFloat(data[0].lat)], label: data[0].display_name };
+      return { coords: [parseFloat(data[0].lon), parseFloat(data[0].lat)], label: formatAddress(data[0]) };
     }
   } catch { /* ignore */ }
   return null;
@@ -37,8 +52,19 @@ async function fetchSuggestions(query: string, lang = 'fr'): Promise<string[]> {
     const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=5&addressdetails=1`;
     const res = await fetch(url, { headers: { 'Accept-Language': lang } });
     const data = await res.json();
-    return data.map((f: any) => f.display_name as string);
+    return data.map(formatAddress);
   } catch { return []; }
+}
+
+async function reverseGeocode(lng: number, lat: number, lang = 'fr'): Promise<string | null> {
+  try {
+    const url = `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&addressdetails=1`;
+    const res = await fetch(url, { headers: { 'Accept-Language': lang } });
+    if (!res.ok) return null;
+    return formatAddress(await res.json());
+  } catch {
+    return null;
+  }
 }
 
 async function fetchNearby(query: string, lat: number, lng: number, lang = 'fr'): Promise<Array<{ label: string; coords: [number, number] }>> {
@@ -47,32 +73,70 @@ async function fetchNearby(query: string, lat: number, lng: number, lang = 'fr')
     const res = await fetch(url, { headers: { 'Accept-Language': lang } });
     const data = await res.json();
     return data.map((f: any) => ({
-      label: f.display_name.split(',')[0],
+      label: formatAddress(f),
       coords: [parseFloat(f.lon), parseFloat(f.lat)] as [number, number],
     }));
   } catch { return []; }
 }
 
-const osrmProfiles: Partial<Record<TransportMode, string>> = {
-  car: 'driving',
-  taxi: 'driving',
-  carpool: 'driving',
-  delivery: 'driving',
+const routingServers: Partial<Record<TransportMode, string>> = {
+  car: 'routed-car',
+  taxi: 'routed-car',
+  carpool: 'routed-car',
+  delivery: 'routed-car',
+  motorcycle: 'routed-car',
+  pedestrian: 'routed-foot',
+  parent: 'routed-foot',
+  tourist: 'routed-foot',
+  bike: 'routed-bike',
+  scooter: 'routed-bike',
 };
 
 function isRouteModeSupported(mode: TransportMode) {
-  return typeof osrmProfiles[mode] === 'string';
+  return typeof routingServers[mode] === 'string';
+}
+
+interface RouteStep {
+  instruction: string;
+  distance: number;
+}
+
+interface RouteResult {
+  duration: number;
+  distance: number;
+  geojson: GeoJSON.FeatureCollection;
+  steps: RouteStep[];
+}
+
+function routeInstruction(step: any): string {
+  const name = step.name ? ` sur ${step.name}` : '';
+  const modifier = step.maneuver?.modifier;
+  const direction = modifier === 'left' || modifier === 'sharp left' || modifier === 'slight left'
+    ? 'à gauche'
+    : modifier === 'right' || modifier === 'sharp right' || modifier === 'slight right'
+      ? 'à droite'
+      : 'tout droit';
+  switch (step.maneuver?.type) {
+    case 'depart': return `Départ${name}`;
+    case 'arrive': return 'Arrivée à destination';
+    case 'turn': return `Tournez ${direction}${name}`;
+    case 'roundabout':
+    case 'rotary': return `Prenez le rond-point${name}`;
+    case 'merge': return `Rejoignez la voie ${direction}${name}`;
+    case 'fork': return `Prenez la bifurcation ${direction}${name}`;
+    default: return `Continuez ${direction}${name}`;
+  }
 }
 
 async function calcRoute(
   origin: [number, number],
   dest: [number, number],
   mode: TransportMode
-): Promise<{ duration: number; distance: number; geojson: GeoJSON.FeatureCollection } | null> {
-  const profile = osrmProfiles[mode];
-  if (!profile) return null;
+): Promise<RouteResult | null> {
+  const server = routingServers[mode];
+  if (!server) return null;
   try {
-    const url = `https://router.project-osrm.org/route/v1/${profile}/${origin[0]},${origin[1]};${dest[0]},${dest[1]}?geometries=geojson&overview=full`;
+    const url = `https://routing.openstreetmap.de/${server}/route/v1/driving/${origin[0]},${origin[1]};${dest[0]},${dest[1]}?geometries=geojson&overview=full&steps=true`;
     const res = await fetch(url, { signal: AbortSignal.timeout(15000) });
     if (!res.ok) return null;
     const data = await res.json();
@@ -82,6 +146,10 @@ async function calcRoute(
         duration: Math.round(r.duration / 60),
         distance: Math.round(r.distance / 100) / 10,
         geojson: { type: 'FeatureCollection', features: [{ type: 'Feature', properties: {}, geometry: r.geometry }] },
+        steps: (r.legs ?? []).flatMap((leg: any) => leg.steps ?? []).map((step: any) => ({
+          instruction: routeInstruction(step),
+          distance: Math.round(step.distance),
+        })),
       };
     }
   } catch { /* ignore */ }
@@ -128,23 +196,25 @@ interface WazeMapScreenProps {
 }
 
 export function WazeMapScreen({ onOpenMetrics, onOpenPreferences, onOpenSettings, onLogout }: WazeMapScreenProps) {
-  const { isVoiceEnabled, setVoiceEnabled, speak, language, setLanguage, t } = useLanguage();
-  const { selectedCountry, mapCenter, setSelectedCountry } = useCountry();
+  const { isVoiceEnabled, speak, language, t } = useLanguage();
+  const { selectedCountry, mapCenter } = useCountry();
   const { user } = useAuth();
 
   const suggestTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const recognitionRef = useRef<any>(null);
   const mapRef = useRef<MapboxMapRef>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const hasLiveLocation = useRef(false);
   const proximity: [number, number] = selectedCountry?.coordinates ?? mapCenter;
 
   const [menuOpen, setMenuOpen] = useState(false);
   const [searchText, setSearchText] = useState('');
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [searchFocused, setSearchFocused] = useState(false);
+  const [originCoords, setOriginCoords] = useState<[number, number]>(proximity);
   const [destCoords, setDestCoords] = useState<[number, number] | null>(null);
   const [destLabel, setDestLabel] = useState('');
-  const [routeInfo, setRouteInfo] = useState<{ duration: number; distance: number; geojson: GeoJSON.FeatureCollection } | null>(null);
+  const [routeInfo, setRouteInfo] = useState<RouteResult | null>(null);
   const [selectedMode, setSelectedMode] = useState<TransportMode>('car');
   const [loading, setLoading] = useState(false);
   const [listening, setListening] = useState(false);
@@ -152,9 +222,6 @@ export function WazeMapScreen({ onOpenMetrics, onOpenPreferences, onOpenSettings
   const [toast, setToast] = useState('');
 
   // New UI states
-  const [showVoicePanel, setShowVoicePanel] = useState(false);
-  const [voiceSearch, setVoiceSearch] = useState('');
-  const [voiceRegion, setVoiceRegion] = useState<string | null>(null);
   const [showAddModePanel, setShowAddModePanel] = useState(false);
   const [extraModes, setExtraModes] = useState<typeof EXTRA_MODES>([]);
   const [showSmartSuggestions, setShowSmartSuggestions] = useState(false);
@@ -169,6 +236,22 @@ export function WazeMapScreen({ onOpenMetrics, onOpenPreferences, onOpenSettings
     setToast(msg);
     setTimeout(() => setToast(''), 3000);
   };
+
+  useEffect(() => {
+    if (!hasLiveLocation.current) setOriginCoords(proximity);
+  }, [proximity[0], proximity[1]]);
+
+  useEffect(() => {
+    if (!navigator.geolocation) return;
+    navigator.geolocation.getCurrentPosition(
+      position => {
+        hasLiveLocation.current = true;
+        setOriginCoords([position.coords.longitude, position.coords.latitude]);
+      },
+      () => undefined,
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 300000 },
+    );
+  }, []);
 
   useEffect(() => {
     if (suggestTimer.current) clearTimeout(suggestTimer.current);
@@ -189,14 +272,14 @@ export function WazeMapScreen({ onOpenMetrics, onOpenPreferences, onOpenSettings
       const result = await geocode(query, proximity[1], proximity[0], language);
       if (result) {
         setDestCoords(result.coords);
-        setDestLabel(result.label.split(',')[0]);
-        setSearchText(result.label.split(',')[0]);
+        setDestLabel(result.label);
+        setSearchText(result.label);
         if (!isRouteModeSupported(selectedMode)) {
           setRouteInfo(null);
           showToast(t('routeProviderRequired'));
           return;
         }
-        const route = await calcRoute(proximity, result.coords, selectedMode);
+        const route = await calcRoute(originCoords, result.coords, selectedMode);
         if (route) {
           setRouteInfo(route);
           speak(speakText(language, 'routeFound', { dur: route.duration, dist: route.distance }));
@@ -209,7 +292,7 @@ export function WazeMapScreen({ onOpenMetrics, onOpenPreferences, onOpenSettings
     } finally {
       setLoading(false);
     }
-  }, [proximity, selectedMode, speak]);
+  }, [proximity, originCoords, selectedMode, speak, language, t]);
 
   const handleModeChange = useCallback(async (mode: TransportMode) => {
     setSelectedMode(mode);
@@ -220,16 +303,16 @@ export function WazeMapScreen({ onOpenMetrics, onOpenPreferences, onOpenSettings
     }
     if (destCoords) {
       setLoading(true);
-      const route = await calcRoute(proximity, destCoords, mode);
+      const route = await calcRoute(originCoords, destCoords, mode);
       if (route) setRouteInfo(route);
       setLoading(false);
     }
-  }, [destCoords, proximity]);
+  }, [destCoords, originCoords, t]);
 
-  const handleMapClick = useCallback(({ lng, lat }: { lng: number; lat: number }) => {
+  const handleMapClick = useCallback(async ({ lng, lat }: { lng: number; lat: number }) => {
     const coords: [number, number] = [lng, lat];
     setDestCoords(coords);
-    const label = `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+    const label = await reverseGeocode(lng, lat, language) ?? `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
     setDestLabel(label);
     setSearchText(label);
     setShowSmartSuggestions(false);
@@ -238,10 +321,10 @@ export function WazeMapScreen({ onOpenMetrics, onOpenPreferences, onOpenSettings
       showToast(t('routeProviderRequired'));
       return;
     }
-    calcRoute(proximity, coords, selectedMode).then(route => {
+    calcRoute(originCoords, coords, selectedMode).then(route => {
       if (route) { setRouteInfo(route); speak(speakText(language, 'routeFoundShort', { dur: route.duration })); }
     });
-  }, [proximity, selectedMode, speak, language]);
+  }, [originCoords, selectedMode, speak, language, t]);
 
   const handleVoice = useCallback(() => {
     const SR = (window as any).SpeechRecognition ?? (window as any).webkitSpeechRecognition;
@@ -317,8 +400,6 @@ export function WazeMapScreen({ onOpenMetrics, onOpenPreferences, onOpenSettings
     cursor: 'pointer', ...style,
   } as React.CSSProperties);
 
-  const currentVoiceLang = ALL_VOICE_LANGUAGES.find(l => l.code === language) ?? ALL_VOICE_LANGUAGES[0];
-
   return (
     <div style={{ position: 'relative', width: '100%', height: '100vh', overflow: 'hidden' }}>
 
@@ -327,6 +408,7 @@ export function WazeMapScreen({ onOpenMetrics, onOpenPreferences, onOpenSettings
         <MapboxMap
           ref={mapRef}
           mapStyle={mapStyle}
+          origin={originCoords}
           destination={destCoords}
           routeGeoJSON={routeInfo?.geojson ?? null}
           onMapClick={handleMapClick}
@@ -358,114 +440,13 @@ export function WazeMapScreen({ onOpenMetrics, onOpenPreferences, onOpenSettings
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8, pointerEvents: 'auto' }}>
-          {/* Voice toggle + lang selector */}
-          <div style={{ position: 'relative' }}>
-            <button
-              onClick={() => { setShowVoicePanel(v => !v); setShowAddModePanel(false); }}
-              style={{ ...btn(), background: isVoiceEnabled ? 'white' : '#f5f5f5' }}
-            >
-              {isVoiceEnabled ? <Volume2 size={20} color="#2563EB" /> : <VolumeX size={20} color="#aaa" />}
-            </button>
-            {showVoicePanel && (
-              <div style={{ position: 'absolute', right: 52, top: 0, background: 'white', borderRadius: 16, boxShadow: '0 4px 24px rgba(0,0,0,0.18)', width: 300, zIndex: 50, display: 'flex', flexDirection: 'column', maxHeight: '80vh' }}>
-                {/* Header */}
-                <div style={{ padding: '12px 14px 8px', borderBottom: '1px solid #f1f5f9', flexShrink: 0 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-                    <span style={{ fontWeight: 700, fontSize: 14, color: '#111' }}>🎙️ {t('voiceGuide')}</span>
-                    <button
-                      onClick={() => setVoiceEnabled(!isVoiceEnabled)}
-                      style={{ fontSize: 11, padding: '4px 10px', borderRadius: 99, border: 'none', background: isVoiceEnabled ? '#DCFCE7' : '#FEE2E2', color: isVoiceEnabled ? '#16A34A' : '#DC2626', cursor: 'pointer', fontWeight: 700 }}
-                    >
-                      {isVoiceEnabled ? `● ${t('enabled')}` : `○ ${t('disabled')}`}
-                    </button>
-                  </div>
-                  {/* Search */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#f8fafc', borderRadius: 10, padding: '6px 10px' }}>
-                    <Search size={13} color="#94a3b8" />
-                    <input
-                      value={voiceSearch}
-                      onChange={e => setVoiceSearch(e.target.value)}
-                      placeholder={t('searchLanguage')}
-                      style={{ flex: 1, border: 'none', outline: 'none', background: 'transparent', fontSize: 12, color: '#334155' }}
-                    />
-                    {voiceSearch && <button onClick={() => setVoiceSearch('')} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}><X size={11} color="#94a3b8" /></button>}
-                  </div>
-                  {/* Region filter chips */}
-                  {!voiceSearch && (
-                    <div style={{ display: 'flex', gap: 4, overflowX: 'auto', scrollbarWidth: 'none', marginTop: 8 }}>
-                      <button
-                        onClick={() => setVoiceRegion(null)}
-                        style={{ flexShrink: 0, padding: '3px 8px', borderRadius: 99, fontSize: 10, fontWeight: 600, border: 'none', cursor: 'pointer', background: voiceRegion === null ? '#1E1B6B' : '#f1f5f9', color: voiceRegion === null ? 'white' : '#64748b' }}
-                      >{t('all')}</button>
-                      {VOICE_REGIONS.map(r => (
-                        <button
-                          key={r}
-                          onClick={() => setVoiceRegion(voiceRegion === r ? null : r)}
-                          style={{ flexShrink: 0, padding: '3px 8px', borderRadius: 99, fontSize: 10, fontWeight: 600, border: 'none', cursor: 'pointer', background: voiceRegion === r ? '#2563EB' : '#f1f5f9', color: voiceRegion === r ? 'white' : '#64748b', whiteSpace: 'nowrap' }}
-                        >{r}</button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-                {/* Language list */}
-                <div style={{ overflowY: 'auto', flex: 1 }}>
-                  {(() => {
-                    const PINNED_CODES = ['ht', 'fr', 'en', 'es', 'pt', 'ar', 'de', 'sw', 'ha', 'yo'];
-                    const sorted = [...ALL_VOICE_LANGUAGES].sort((a, b) => a.label.localeCompare(b.label, 'fr'));
-                    const filtered = sorted.filter(l => {
-                      const q = voiceSearch.toLowerCase();
-                      const matchSearch = !q || l.label.toLowerCase().includes(q) || l.native.toLowerCase().includes(q) || l.code.toLowerCase().includes(q) || (l.code === 'ht' && 'hayti'.includes(q));
-                      const matchRegion = !voiceRegion || l.region === voiceRegion;
-                      return matchSearch && matchRegion;
-                    });
-                    if (filtered.length === 0) return <div style={{ padding: '16px', textAlign: 'center', color: '#94a3b8', fontSize: 13 }}>Aucune langue trouvée</div>;
-                    const VoiceRow = ({ l }: { l: typeof ALL_VOICE_LANGUAGES[0] }) => (
-                      <button
-                        key={l.code}
-                        onClick={() => {
-                          setLanguage(l.code);
-                          speak(speakText(l.code, 'voiceConfirm', { lang: l.native }), l.bcp);
-                          const primaryCountry = countries.find(c => c.languages.includes(l.code));
-                          if (primaryCountry) setSelectedCountry(primaryCountry);
-                          setShowVoicePanel(false);
-                          setVoiceSearch('');
-                        }}
-                        style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '9px 14px', background: language === l.code ? '#EFF6FF' : 'none', border: 'none', cursor: 'pointer', textAlign: 'left', borderBottom: '1px solid #f8fafc' }}
-                      >
-                        <span style={{ fontSize: 18, lineHeight: 1 }}>{l.flag}</span>
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontSize: 12, fontWeight: language === l.code ? 700 : 500, color: language === l.code ? '#2563EB' : '#334155', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{l.label}</div>
-                          <div style={{ fontSize: 10, color: '#94a3b8', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{l.native}{voiceSearch ? ` • ${l.region}` : ''}</div>
-                        </div>
-                        {!l.supported && <span style={{ fontSize: 9, color: '#F59E0B', background: '#FEF3C7', padding: '1px 5px', borderRadius: 4, flexShrink: 0 }}>🔜</span>}
-                        {language === l.code && <span style={{ color: '#2563EB', fontSize: 14, flexShrink: 0 }}>✓</span>}
-                      </button>
-                    );
-                    // Group by region when no search
-                    if (!voiceSearch) {
-                      const pinned = PINNED_CODES.map(c => sorted.find(l => l.code === c)).filter(Boolean) as typeof ALL_VOICE_LANGUAGES;
-                      const regions = Array.from(new Set(sorted.map(l => l.region)));
-                      return <>
-                        <div style={{ padding: '6px 14px 2px', fontSize: 10, fontWeight: 700, color: '#2563EB', textTransform: 'uppercase', letterSpacing: '0.08em', background: '#EFF6FF', borderBottom: '1px solid #DBEAFE' }}>⭐ {t('languages')}</div>
-                        {pinned.map(l => <VoiceRow key={l.code} l={l} />)}
-                        {regions.map(region => (
-                        <div key={region}>
-                          <div style={{ padding: '6px 14px 2px', fontSize: 10, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.08em', background: '#f8fafc', borderBottom: '1px solid #f1f5f9' }}>{region}</div>
-                          {filtered.filter(l => l.region === region).map(l => <VoiceRow key={l.code} l={l} />)}
-                        </div>
-                      ))}</>;
-                    }
-                    return filtered.map(l => (
-                      <VoiceRow key={l.code} l={l} />
-                    ));
-                  })()}
-                </div>
-                <div style={{ padding: '8px 14px', borderTop: '1px solid #f1f5f9', fontSize: 10, color: '#94a3b8', flexShrink: 0 }}>
-                  {t('voiceSupportNote')} • {ALL_VOICE_LANGUAGES.length} {t('languages')}
-                </div>
-              </div>
-            )}
-          </div>
+          <button
+            onClick={() => (onOpenSettings ?? onOpenPreferences)()}
+            title="Langue et guidage vocal dans Paramètres"
+            style={{ ...btn(), background: isVoiceEnabled ? 'white' : '#f5f5f5' }}
+          >
+            {isVoiceEnabled ? <Volume2 size={20} color="#2563EB" /> : <VolumeX size={20} color="#aaa" />}
+          </button>
 
           <button style={btn()}>
             <Compass size={20} color="#333" />
@@ -524,12 +505,27 @@ export function WazeMapScreen({ onOpenMetrics, onOpenPreferences, onOpenSettings
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
               <div>
                 <div style={{ fontSize: 28, fontWeight: 800, color: '#111' }}>{routeInfo.duration} <span style={{ fontSize: 16, fontWeight: 500, color: '#666' }}>min</span></div>
-                <div style={{ fontSize: 13, color: '#666' }}>{routeInfo.distance} km · {destLabel}</div>
+                <div style={{ fontSize: 13, color: '#666', lineHeight: 1.4 }}>{routeInfo.distance} km · {destLabel}</div>
               </div>
               <button onClick={clearRoute} style={{ background: '#f5f5f5', border: 'none', borderRadius: '50%', width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
                 <Trash2 size={16} color="#999" />
               </button>
             </div>
+            {routeInfo.steps.length > 0 && (
+              <div style={{ maxHeight: 120, overflowY: 'auto', marginBottom: 12, border: '1px solid #E5E7EB', borderRadius: 12 }}>
+                {routeInfo.steps.map((step, index) => (
+                  <div key={`${step.instruction}-${index}`} style={{ display: 'flex', gap: 10, padding: '8px 10px', borderBottom: index < routeInfo.steps.length - 1 ? '1px solid #F1F5F9' : 'none', alignItems: 'flex-start' }}>
+                    <div style={{ width: 22, height: 22, borderRadius: '50%', background: index === routeInfo.steps.length - 1 ? '#DCFCE7' : '#EFF6FF', color: index === routeInfo.steps.length - 1 ? '#15803D' : '#2563EB', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 800, flexShrink: 0 }}>
+                      {index + 1}
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 12, fontWeight: 600, color: '#1F2937' }}>{step.instruction}</div>
+                      {step.distance > 0 && <div style={{ fontSize: 10, color: '#94A3B8', marginTop: 1 }}>{step.distance < 1000 ? `${step.distance} m` : `${(step.distance / 1000).toFixed(1)} km`}</div>}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
             <button
               onClick={() => { setNavigating(true); speak(speakText(language, 'routeOverviewVoice', { dest: destLabel, dur: routeInfo.duration })); }}
               style={{ width: '100%', background: '#2563EB', color: 'white', border: 'none', borderRadius: 14, padding: '14px 0', fontWeight: 700, fontSize: 16, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
@@ -722,8 +718,8 @@ export function WazeMapScreen({ onOpenMetrics, onOpenPreferences, onOpenSettings
       </div>
 
       {/* Close panels overlay */}
-      {(showVoicePanel || showAddModePanel) && (
-        <div onClick={() => { setShowVoicePanel(false); setShowAddModePanel(false); }} style={{ position: 'absolute', inset: 0, zIndex: 9 }} />
+      {showAddModePanel && (
+        <div onClick={() => setShowAddModePanel(false)} style={{ position: 'absolute', inset: 0, zIndex: 9 }} />
       )}
 
       {/* HAMBURGER MENU */}
@@ -754,13 +750,13 @@ export function WazeMapScreen({ onOpenMetrics, onOpenPreferences, onOpenSettings
                   </div>
                 </div>
               )}
-              {/* Voice lang indicator in menu — clickable */}
+              {/* Voice settings shortcut */}
               <button
-                onClick={() => { setMenuOpen(false); setTimeout(() => setShowVoicePanel(true), 150); }}
+                onClick={() => { setMenuOpen(false); (onOpenSettings ?? onOpenPreferences)(); }}
                 style={{ marginTop: 10, width: '100%', display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(255,255,255,0.1)', borderRadius: 10, padding: '6px 10px', border: 'none', cursor: 'pointer', textAlign: 'left' }}
               >
-                <span style={{ fontSize: 16 }}>{currentVoiceLang.flag}</span>
-                <span style={{ color: 'rgba(255,255,255,0.9)', fontSize: 12, flex: 1 }}>{t('voiceGuide')} : {currentVoiceLang.native}</span>
+                <Settings size={16} color="white" />
+                <span style={{ color: 'rgba(255,255,255,0.9)', fontSize: 12, flex: 1 }}>{t('voiceGuide')} · {t('languages')}</span>
                 <span style={{ fontSize: 11, color: isVoiceEnabled ? '#4ADE80' : '#F87171', fontWeight: 600 }}>{isVoiceEnabled ? 'ON' : 'OFF'}</span>
                 <ChevronRight size={13} color="rgba(255,255,255,0.5)" />
               </button>

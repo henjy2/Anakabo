@@ -314,10 +314,12 @@ interface SettingsScreenProps {
 }
 
 export function SettingsScreen({ onClose }: SettingsScreenProps) {
-  const { t, language, setLanguage } = useLanguage();
-  const { user, logout } = useAuth();
+  const { t, language, setLanguage, isVoiceEnabled, setVoiceEnabled } = useLanguage();
+  const { user, logout, updatePreferences } = useAuth();
 
   const [section, setSection] = useState<string | null>(null);
+  const [draftLanguage, setDraftLanguage] = useState(language);
+  const [draftVoiceEnabled, setDraftVoiceEnabled] = useState(isVoiceEnabled);
   const [settings, setSettings] = useState<SettingsState>(() => {
     try {
       const saved = localStorage.getItem('anakabo-settings');
@@ -339,16 +341,24 @@ export function SettingsScreen({ onClose }: SettingsScreenProps) {
   const [toast, setToast] = useState<string | null>(null);
 
   useEffect(() => {
-    try {
-      localStorage.setItem('anakabo-settings', JSON.stringify(settings));
-    } catch { /* ignore */ }
-  }, [settings]);
-
-  useEffect(() => {
     if (!toast) return;
     const timer = setTimeout(() => setToast(null), 3000);
     return () => clearTimeout(timer);
   }, [toast]);
+
+  const saveSettings = () => {
+    try {
+      localStorage.setItem('anakabo-settings', JSON.stringify(settings));
+    } catch { /* ignore */ }
+    setLanguage(draftLanguage);
+    setVoiceEnabled(draftVoiceEnabled);
+    updatePreferences({
+      selectedLanguage: draftLanguage,
+      voiceGuidance: draftVoiceEnabled,
+      units: settings.distanceUnit === 'km' ? 'metric' : 'imperial',
+    });
+    setToast('Paramètres enregistrés');
+  };
 
   const shareApp = async () => {
     const url = 'https://anakabo.com/';
@@ -496,7 +506,7 @@ export function SettingsScreen({ onClose }: SettingsScreenProps) {
         {sortedLangs.map(l => (
           <div
             key={l.code}
-            onClick={() => setLanguage(l.code)}
+            onClick={() => setDraftLanguage(l.code)}
             style={{
               display: 'flex', alignItems: 'center', justifyContent: 'space-between',
               padding: '10px 16px', backgroundColor: '#fff',
@@ -512,7 +522,7 @@ export function SettingsScreen({ onClose }: SettingsScreenProps) {
                 )}
               </div>
             </div>
-            {language === l.code && <Check size={18} color="#3b82f6" />}
+            {draftLanguage === l.code && <Check size={18} color="#3b82f6" />}
           </div>
         ))}
 
@@ -682,6 +692,13 @@ export function SettingsScreen({ onClose }: SettingsScreenProps) {
 
   const renderVoice = () => (
     <div>
+      <SectionHeader>Guidage vocal</SectionHeader>
+      <SettingRow
+        label="Activer le guidage vocal"
+        description="La langue et les options vocales seront appliquées après enregistrement."
+        right={<Toggle checked={draftVoiceEnabled} onChange={() => setDraftVoiceEnabled(value => !value)} />}
+      />
+
       <SectionHeader>Voix actuelle</SectionHeader>
       {VOICES.map(v => (
         <div
@@ -1208,15 +1225,28 @@ export function SettingsScreen({ onClose }: SettingsScreenProps) {
           </h1>
         </div>
 
-        <button
-          onClick={onClose}
-          style={{
-            background: 'none', border: 'none', cursor: 'pointer',
-            padding: 4, display: 'flex', alignItems: 'center',
-          }}
-        >
-          <X size={22} color="#374151" />
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <button
+            onClick={saveSettings}
+            style={{
+              background: '#2563EB', border: 'none', cursor: 'pointer',
+              padding: '7px 11px', display: 'flex', alignItems: 'center', gap: 5,
+              borderRadius: 9, color: 'white', fontSize: 12, fontWeight: 700,
+            }}
+          >
+            <Check size={15} />
+            Enregistrer
+          </button>
+          <button
+            onClick={onClose}
+            style={{
+              background: 'none', border: 'none', cursor: 'pointer',
+              padding: 4, display: 'flex', alignItems: 'center',
+            }}
+          >
+            <X size={22} color="#374151" />
+          </button>
+        </div>
       </div>
 
       {/* ── Content ── */}

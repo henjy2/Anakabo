@@ -88,7 +88,7 @@ export const MapboxMap = forwardRef<MapboxMapRef, MapboxMapProps>(
     const tileLayerRef = useRef<L.TileLayer | null>(null);
     const originMarkerRef = useRef<L.Marker | null>(null);
     const destMarkerRef = useRef<L.Marker | null>(null);
-    const routeLayerRef = useRef<L.GeoJSON | null>(null);
+    const routeLayerRef = useRef<L.LayerGroup | null>(null);
 
     useImperativeHandle(ref, () => ({
       zoomIn: () => mapRef.current?.zoomIn(),
@@ -118,6 +118,8 @@ export const MapboxMap = forwardRef<MapboxMapRef, MapboxMapProps>(
       }
       const tl = L.tileLayer(TILE_URLS[mapStyle], {
         attribution: TILE_ATTRIBUTIONS[mapStyle],
+        detectRetina: true,
+        maxNativeZoom: 19,
         maxZoom: 19,
       }).addTo(map);
       tileLayerRef.current = tl;
@@ -135,6 +137,8 @@ export const MapboxMap = forwardRef<MapboxMapRef, MapboxMapProps>(
       tileLayerRef.current?.remove();
       const tl = L.tileLayer(TILE_URLS[mapStyle], {
         attribution: TILE_ATTRIBUTIONS[mapStyle],
+        detectRetina: true,
+        maxNativeZoom: 19,
         maxZoom: 19,
       }).addTo(map);
       tileLayerRef.current = tl;
@@ -189,9 +193,18 @@ export const MapboxMap = forwardRef<MapboxMapRef, MapboxMapProps>(
       routeLayerRef.current?.remove();
       routeLayerRef.current = null;
       if (routeGeoJSON && isValidRouteGeoJSON(routeGeoJSON)) {
-        routeLayerRef.current = L.geoJSON(routeGeoJSON, {
-          style: { color: '#2563EB', weight: 5, opacity: 1 },
-        }).addTo(map);
+        const outline = L.geoJSON(routeGeoJSON, {
+          style: { color: '#FFFFFF', weight: 10, opacity: 0.95, lineCap: 'round', lineJoin: 'round' },
+        });
+        const route = L.geoJSON(routeGeoJSON, {
+          style: { color: '#2563EB', weight: 6, opacity: 1, lineCap: 'round', lineJoin: 'round' },
+        });
+        const group = L.layerGroup([outline, route]).addTo(map);
+        routeLayerRef.current = group;
+        const bounds = route.getBounds();
+        if (bounds.isValid()) {
+          map.fitBounds(bounds, { paddingTopLeft: [32, 96], paddingBottomRight: [32, 260], maxZoom: 15 });
+        }
       }
     }, [routeGeoJSON]);
 

@@ -113,6 +113,13 @@ export const countries: Country[] = [
   { code: 'CL', name: 'Chile', nativeName: 'Chile', flag: '🇨🇱', region: 'americas', coordinates: [-71.5430, -35.6751], zoom: 4, languages: ['es'], currency: 'CLP', capital: 'Santiago' },
   { code: 'PE', name: 'Peru', nativeName: 'Perú', flag: '🇵🇪', region: 'americas', coordinates: [-75.0152, -9.1900], zoom: 5, languages: ['es'], currency: 'PEN', capital: 'Lima' },
   { code: 'VE', name: 'Venezuela', nativeName: 'Venezuela', flag: '🇻🇪', region: 'americas', coordinates: [-66.5897, 6.4238], zoom: 5, languages: ['es'], currency: 'VES', capital: 'Caracas' },
+  { code: 'BZ', name: 'Belize', nativeName: 'Belize', flag: '🇧🇿', region: 'americas', coordinates: [-88.4976, 17.1899], zoom: 7, languages: ['en', 'es'], currency: 'BZD', capital: 'Belmopan' },
+  { code: 'GT', name: 'Guatemala', nativeName: 'Guatemala', flag: '🇬🇹', region: 'americas', coordinates: [-90.2308, 15.7835], zoom: 6, languages: ['es'], currency: 'GTQ', capital: 'Guatemala' },
+  { code: 'SV', name: 'El Salvador', nativeName: 'El Salvador', flag: '🇸🇻', region: 'americas', coordinates: [-88.8965, 13.7942], zoom: 7, languages: ['es'], currency: 'USD', capital: 'San Salvador' },
+  { code: 'HN', name: 'Honduras', nativeName: 'Honduras', flag: '🇭🇳', region: 'americas', coordinates: [-86.2419, 15.2000], zoom: 6, languages: ['es'], currency: 'HNL', capital: 'Tegucigalpa' },
+  { code: 'NI', name: 'Nicaragua', nativeName: 'Nicaragua', flag: '🇳🇮', region: 'americas', coordinates: [-85.2072, 12.8654], zoom: 6, languages: ['es'], currency: 'NIO', capital: 'Managua' },
+  { code: 'CR', name: 'Costa Rica', nativeName: 'Costa Rica', flag: '🇨🇷', region: 'americas', coordinates: [-83.7534, 9.7489], zoom: 7, languages: ['es'], currency: 'CRC', capital: 'San José' },
+  { code: 'PA', name: 'Panama', nativeName: 'Panamá', flag: '🇵🇦', region: 'americas', coordinates: [-80.7821, 8.5380], zoom: 7, languages: ['es'], currency: 'PAB', capital: 'Panama' },
 
   // Asie
   { code: 'CN', name: 'China', nativeName: '中国', flag: '🇨🇳', region: 'asia', coordinates: [104.1954, 35.8617], zoom: 3, languages: ['zh'], currency: 'CNY', capital: 'Pékin' },
@@ -142,7 +149,42 @@ export const getCaribbeanCountries = () => getCountriesByRegion('caribbean');
 export const getEuropeanCountries = () => getCountriesByRegion('europe');
 export const getAmericasCountries = () => getCountriesByRegion('americas');
 export const getAsianCountries = () => getCountriesByRegion('asia');
+export const getOceanianCountries = () => getCountriesByRegion('oceania');
 export const getWorldCountries = () => countries.filter(c => !['africa'].includes(c.region));
+
+const COUNTRY_SECTIONS: Partial<Record<Country['region'], Array<{ label: string; codes: string[] }>>> = {
+  africa: [
+    { label: 'Afrique du Nord', codes: ['DZ', 'EG', 'LY', 'MA', 'TN', 'SD'] },
+    { label: "Afrique de l'Ouest", codes: ['SN', 'NG', 'GH', 'CI', 'ML', 'BF', 'GN', 'TG', 'BJ', 'NE', 'MR', 'SL', 'LR', 'GM', 'GW', 'CV'] },
+    { label: 'Afrique centrale', codes: ['CD', 'CG', 'CM', 'CF', 'TD', 'GA', 'GQ', 'ST'] },
+    { label: "Afrique de l'Est", codes: ['ET', 'KE', 'TZ', 'UG', 'RW', 'BI', 'SO', 'DJ', 'ER', 'SS'] },
+    { label: 'Afrique australe', codes: ['ZA', 'ZW', 'ZM', 'MZ', 'MW', 'AO', 'NA', 'BW', 'LS', 'SZ'] },
+    { label: 'Îles africaines et océan Indien', codes: ['MG', 'MU', 'SC', 'KM'] },
+  ],
+  caribbean: [
+    { label: 'HAYTI et Grandes Antilles', codes: ['HT', 'DO', 'JM'] },
+    { label: 'Petites Antilles', codes: ['TT', 'BB', 'GP', 'MQ'] },
+  ],
+  americas: [
+    { label: 'Amérique du Nord', codes: ['CA', 'US', 'MX'] },
+    { label: 'Amérique centrale', codes: ['BZ', 'GT', 'SV', 'HN', 'NI', 'CR', 'PA'] },
+    { label: 'Amérique du Sud', codes: ['GF', 'BR', 'AR', 'CO', 'CL', 'PE', 'VE'] },
+  ],
+};
+
+export function getCountrySections(region: Country['region']) {
+  const regionCountries = getCountriesByRegion(region);
+  const definitions = COUNTRY_SECTIONS[region];
+  if (!definitions) return [{ label: '', countries: regionCountries }];
+  return definitions
+    .map(section => ({
+      label: section.label,
+      countries: section.codes
+        .map(code => regionCountries.find(country => country.code === code))
+        .filter((country): country is Country => Boolean(country)),
+    }))
+    .filter(section => section.countries.length > 0);
+}
 
 export const getLanguagesForCountry = (countryCode: string) => {
   const country = countries.find(c => c.code === countryCode);
